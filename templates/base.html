@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Luciano Garces Contabilidade{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-body">
+  <header class="app-header">
+    <a class="brand" href="{{ url_for('index') }}">
+      <span class="brand-mark">LG</span>
+      <span>
+        <strong>Luciano Garces</strong>
+        <small>Contabilidade e Pericias</small>
+      </span>
+    </a>
+
+    <nav class="app-nav" aria-label="Menu da area logada">
+      {% if current_user.is_authenticated and current_user.tipo == "admin" %}
+        <a href="{{ url_for('admin_dashboard') }}">Painel</a>
+        <a href="{{ url_for('admin_contatos') }}">Contatos</a>
+        <a href="{{ url_for('admin_solicitacoes') }}">Solicitações</a>
+        <a href="{{ url_for('admin_clientes') }}">Clientes</a>
+      {% elif current_user.is_authenticated and current_user.tipo == "cliente" %}
+        <a href="{{ url_for('cliente_dashboard') }}">Inicio</a>
+        <a href="{{ url_for('cliente_servicos') }}">Servicos</a>
+        <a href="{{ url_for('cliente_pendencias') }}">Pendencias</a>
+        <a href="{{ url_for('cliente_perfil') }}">Perfil</a>
+      {% endif %}
+
+      {% if current_user.is_authenticated %}
+        <a class="btn btn-small btn-secondary" href="{{ url_for('logout') }}">Sair</a>
+      {% else %}
+        <a class="btn btn-small btn-primary" href="{{ url_for('login') }}">Entrar</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="app-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+            <p class="flash flash-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

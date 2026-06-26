@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Luciano Garces{% endblock %}
+
+{% block content %}
+<section class="auth-panel">
+  <div>
+    <span class="eyebrow">Acesso restrito</span>
+    <h1>Entrar no sistema</h1>
+    <p>Use seu e-mail e senha para acessar o painel administrativo ou a area do cliente.</p>
+  </div>
+
+  <form class="panel-form" method="post" action="{{ url_for('login') }}">
+    <label>
+      E-mail
+      <input type="email" name="email" placeholder="voce@email.com" required>
+    </label>
+    <label>
+      Senha
+      <input type="password" name="senha" placeholder="Sua senha" required>
+    </label>
+    <button class="btn btn-primary" type="submit">Entrar</button>
+    <a class="auth-link" href="{{ url_for('solicitar_atendimento') }}">Ainda não tem acesso? Solicite atendimento</a>
+  </form>
+</section>
+{% endblock %}

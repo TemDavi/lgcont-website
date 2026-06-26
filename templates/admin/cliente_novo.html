@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Cliente | Admin{% endblock %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Administrador</span>
+  <h1>Cadastrar cliente</h1>
+  <p>O cadastro cria o cliente e tambem um usuario de login para ele.</p>
+</section>
+
+<form class="panel-form wide-form" method="post" action="{{ url_for('admin_cliente_novo') }}">
+  <label>
+    Nome
+    <input type="text" name="nome" required>
+  </label>
+  <label>
+    E-mail de login
+    <input type="email" name="email" required>
+  </label>
+  <label>
+    Senha inicial
+    <input type="password" name="senha" required>
+  </label>
+  <label>
+    Telefone
+    <input type="tel" name="telefone">
+  </label>
+  <label>
+    CPF/CNPJ
+    <input type="text" name="cpf_cnpj">
+  </label>
+  <label>
+    Tipo de cliente
+    <select name="tipo_cliente" required>
+      <option value="">Selecione</option>
+      {% for tipo in tipos_cliente %}
+        <option value="{{ tipo }}">{{ tipo }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="full-field">
+    Endereco
+    <input type="text" name="endereco">
+  </label>
+  <button class="btn btn-primary" type="submit">Cadastrar cliente</button>
+</form>
+{% endblock %}

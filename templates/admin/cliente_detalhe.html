@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhe do Cliente | Admin{% endblock %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Administrador</span>
+  <h1>{{ cliente.usuario.nome }}</h1>
+  <p>{{ cliente.usuario.email }} | {{ cliente.tipo_cliente }}</p>
+</section>
+
+<section class="detail-grid">
+  <article class="info-card">
+    <h2>Dados principais</h2>
+    <p><strong>Telefone:</strong> {{ cliente.telefone or "-" }}</p>
+    <p><strong>CPF/CNPJ:</strong> {{ cliente.cpf_cnpj or "-" }}</p>
+    <p><strong>Endereco:</strong> {{ cliente.endereco or "-" }}</p>
+    {% if cliente.usuario.precisa_definir_senha and cliente.usuario.senha_temporaria %}
+      <p><strong>Senha temporaria:</strong> {{ cliente.usuario.senha_temporaria }}</p>
+    {% endif %}
+  </article>
+
+  <article class="info-card">
+    <h2>Novo servico</h2>
+    <form class="compact-form" method="post" action="{{ url_for('admin_servico_novo', id=cliente.id) }}">
+      <input type="text" name="titulo" placeholder="Titulo do servico" required>
+      <textarea name="descricao" rows="3" placeholder="Descricao"></textarea>
+      <button class="btn btn-primary" type="submit">Adicionar</button>
+    </form>
+  </article>
+
+  <article class="info-card">
+    <h2>Nova pendencia</h2>
+    <form class="compact-form" method="post" action="{{ url_for('admin_pendencia_nova', id=cliente.id) }}">
+      <input type="text" name="titulo" placeholder="Titulo da pendencia" required>
+      <textarea name="descricao" rows="3" placeholder="Descricao"></textarea>
+      <button class="btn btn-primary" type="submit">Adicionar</button>
+    </form>
+  </article>
+</section>
+
+<section class="list-panel">
+  <h2>Servicos</h2>
+  {% for servico in cliente.servicos %}
+    <article class="list-item">
+      <div>
+        <h3>{{ servico.titulo }}</h3>
+        <p>{{ servico.descricao or "Sem descricao." }}</p>
+        <small>Atualizado em {{ servico.atualizado_em.strftime("%d/%m/%Y %H:%M") }}</small>
+      </div>
+      <form method="post" action="{{ url_for('admin_servico_status', id=servico.id) }}">
+        <select name="status">
+          {% for status in status_servico %}
+            <option value="{{ status }}" {% if servico.status == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-small btn-primary" type="submit">Salvar</button>
+      </form>
+    </article>
+  {% else %}
+    <p>Nenhum servico cadastrado.</p>
+  {% endfor %}
+</section>
+
+<section class="list-panel">
+  <h2>Pendencias</h2>
+  {% for pendencia in cliente.pendencias %}
+    <article class="list-item">
+      <div>
+        <h3>{{ pendencia.titulo }}</h3>
+        <p>{{ pendencia.descricao or "Sem descricao." }}</p>
+        <small>Criada em {{ pendencia.criado_em.strftime("%d/%m/%Y %H:%M") }}</small>
+      </div>
+      <form method="post" action="{{ url_for('admin_pendencia_status', id=pendencia.id) }}">
+        <select name="status">
+          {% for status in status_pendencia %}
+            <option value="{{ status }}" {% if pendencia.status == status %}selected{% endif %}>{{ status }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-small btn-primary" type="submit">Salvar</button>
+      </form>
+    </article>
+  {% else %}
+    <p>Nenhuma pendencia cadastrada.</p>
+  {% endfor %}
+</section>
+{% endblock %}

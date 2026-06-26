@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitar Atendimento | Luciano Garces{% endblock %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Atendimento</span>
+  <h1>Solicitar atendimento</h1>
+  <p>Preencha seus dados para que a equipe analise a solicitação e entre em contato.</p>
+</section>
+
+<form class="panel-form wide-form" method="post" action="{{ url_for('solicitar_atendimento') }}">
+  <label>
+    Nome
+    <input type="text" name="nome" required>
+  </label>
+  <label>
+    E-mail
+    <input type="email" name="email" required>
+  </label>
+  <label>
+    Telefone
+    <input type="tel" name="telefone" required>
+  </label>
+  <label>
+    CPF/CNPJ
+    <input type="text" name="cpf_cnpj" required>
+  </label>
+  <label>
+    Tipo de cliente
+    <select name="tipo_cliente" required>
+      <option value="">Selecione</option>
+      {% for tipo in tipos_cliente %}
+        <option value="{{ tipo }}">{{ tipo }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Serviço desejado
+    <select name="servico_desejado" required>
+      <option value="">Selecione</option>
+      {% for servico in servicos_atendimento %}
+        <option value="{{ servico }}">{{ servico }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="full-field">
+    Mensagem
+    <textarea name="mensagem" rows="6" placeholder="Conte brevemente como podemos ajudar" required></textarea>
+  </label>
+  <button class="btn btn-primary" type="submit">Enviar solicitação</button>
+</form>
+{% endblock %}

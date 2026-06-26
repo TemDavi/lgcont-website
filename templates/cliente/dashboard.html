@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Area do Cliente | Luciano Garces{% endblock %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Cliente</span>
+  <h1>Olá, {{ cliente.usuario.nome }}</h1>
+  <p>Acompanhe seus servicos, pendencias e dados cadastrais.</p>
+</section>
+
+<section class="summary-grid">
+  <article class="summary-card"><span>Servicos</span><strong>{{ resumo.servicos }}</strong></article>
+  <article class="summary-card"><span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong></article>
+  <article class="summary-card"><span>Servicos finalizados</span><strong>{{ resumo.finalizados }}</strong></article>
+  <article class="summary-card"><span>Tipo</span><strong>{{ cliente.tipo_cliente }}</strong></article>
+</section>
+
+<section class="panel-actions">
+  <a class="btn btn-primary" href="{{ url_for('cliente_servicos') }}">Ver servicos</a>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('cliente_perfil') }}">Atualizar perfil</a>
+</section>
+{% endblock %}

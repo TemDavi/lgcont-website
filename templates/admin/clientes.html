@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes | Admin{% endblock %}
+
+{% block content %}
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Administrador</span>
+    <h1>Clientes cadastrados</h1>
+    <p>Gerencie acessos, servicos e pendencias dos clientes.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('admin_cliente_novo') }}">Novo cliente</a>
+</section>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>E-mail</th>
+        <th>Telefone</th>
+        <th>Tipo</th>
+        <th>Acoes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cliente in clientes %}
+        <tr>
+          <td>{{ cliente.usuario.nome }}</td>
+          <td>{{ cliente.usuario.email }}</td>
+          <td>{{ cliente.telefone or "-" }}</td>
+          <td>{{ cliente.tipo_cliente }}</td>
+          <td><a href="{{ url_for('admin_cliente_detalhe', id=cliente.id) }}">Detalhes</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">Nenhum cliente cadastrado ainda.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

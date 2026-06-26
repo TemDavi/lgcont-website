@@ -1,0 +1,145 @@
+from datetime import datetime
+
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
+
+
+db = SQLAlchemy()
+
+TIPOS_USUARIO = ("admin", "cliente")
+TIPOS_CLIENTE = ("Pessoa Física", "MEI", "Empresa", "Autônomo")
+SERVICOS_ATENDIMENTO = (
+    "Declaração de IRPF",
+    "Abertura de empresa",
+    "Regularização de MEI",
+    "Simples Nacional",
+    "Perícia contábil",
+    "DECORE",
+    "Certificado digital",
+    "Assessoria contábil",
+    "Assessoria trabalhista",
+    "Outro",
+)
+STATUS_SOLICITACAO = (
+    "pendente",
+    "em_contato",
+    "aprovada",
+    "rejeitada",
+    "convertida_cliente",
+)
+STATUS_SERVICO = (
+    "solicitado",
+    "em análise",
+    "aguardando documentos",
+    "finalizado",
+    "cancelado",
+)
+STATUS_PENDENCIA = ("pendente", "resolvida")
+
+
+class Usuario(UserMixin, db.Model):
+    __tablename__ = "usuarios"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True, index=True)
+    senha_hash = db.Column(db.String(255), nullable=False)
+    tipo = db.Column(db.String(20), nullable=False)
+    precisa_definir_senha = db.Column(db.Boolean, nullable=False, default=False)
+    senha_temporaria = db.Column(db.String(80), nullable=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    cliente = db.relationship("Cliente", back_populates="usuario", uselist=False)
+
+
+class Contato(db.Model):
+    __tablename__ = "contatos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False)
+    telefone = db.Column(db.String(30), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    servico = db.Column(db.String(120), nullable=True)
+    mensagem = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(30), nullable=False, default="novo")
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class SolicitacaoAtendimento(db.Model):
+    __tablename__ = "solicitacoes_atendimento"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), nullable=False, index=True)
+    telefone = db.Column(db.String(30), nullable=False)
+    cpf_cnpj = db.Column(db.String(30), nullable=False)
+    tipo_cliente = db.Column(db.String(30), nullable=False)
+    servico_desejado = db.Column(db.String(120), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(30), nullable=False, default="pendente", index=True)
+    observacao_admin = db.Column(db.Text, nullable=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    atualizado_em = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+
+class Cliente(db.Model):
+    __tablename__ = "clientes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, unique=True)
+    telefone = db.Column(db.String(30), nullable=True)
+    cpf_cnpj = db.Column(db.String(30), nullable=True)
+    endereco = db.Column(db.String(255), nullable=True)
+    tipo_cliente = db.Column(db.String(30), nullable=False)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    usuario = db.relationship("Usuario", back_populates="cliente")
+    servicos = db.relationship(
+        "ServicoCliente",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+        order_by="ServicoCliente.criado_em.desc()",
+    )
+    pendencias = db.relationship(
+        "Pendencia",
+        back_populates="cliente",
+        cascade="all, delete-orphan",
+        order_by="Pendencia.criado_em.desc()",
+    )
+
+
+class ServicoCliente(db.Model):
+    __tablename__ = "servicos_cliente"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False, index=True)
+    titulo = db.Column(db.String(150), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(40), nullable=False, default="solicitado")
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    atualizado_em = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    cliente = db.relationship("Cliente", back_populates="servicos")
+
+
+class Pendencia(db.Model):
+    __tablename__ = "pendencias"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False, index=True)
+    titulo = db.Column(db.String(150), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(30), nullable=False, default="pendente")
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    cliente = db.relationship("Cliente", back_populates="pendencias")

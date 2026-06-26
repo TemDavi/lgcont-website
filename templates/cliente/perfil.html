@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Meu Perfil | Cliente{% endblock %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Cliente</span>
+  <h1>Meu perfil</h1>
+  <p>Confira seus dados principais e atualize telefone e endereco.</p>
+</section>
+
+<section class="detail-grid">
+  <article class="info-card">
+    <h2>Dados de acesso</h2>
+    <p><strong>Nome:</strong> {{ cliente.usuario.nome }}</p>
+    <p><strong>E-mail:</strong> {{ cliente.usuario.email }}</p>
+    <p><strong>CPF/CNPJ:</strong> {{ cliente.cpf_cnpj or "-" }}</p>
+    <p><strong>Tipo:</strong> {{ cliente.tipo_cliente }}</p>
+  </article>
+
+  <article class="info-card">
+    <h2>Atualizar contato</h2>
+    <form class="compact-form" method="post" action="{{ url_for('cliente_perfil') }}">
+      <label>
+        Telefone
+        <input type="tel" name="telefone" value="{{ cliente.telefone or '' }}">
+      </label>
+      <label>
+        Endereco
+        <input type="text" name="endereco" value="{{ cliente.endereco or '' }}">
+      </label>
+      <button class="btn btn-primary" type="submit">Salvar alteracoes</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

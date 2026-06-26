@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Meus Servicos | Cliente{% endblock %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Cliente</span>
+  <h1>Meus servicos</h1>
+  <p>Consulte o andamento dos servicos cadastrados pelo escritorio.</p>
+</section>
+
+<section class="list-panel">
+  {% for servico in servicos %}
+    <article class="list-item">
+      <div>
+        <h3>{{ servico.titulo }}</h3>
+        <p>{{ servico.descricao or "Sem descricao." }}</p>
+        <small>Criado em {{ servico.criado_em.strftime("%d/%m/%Y %H:%M") }}</small>
+      </div>
+      <span class="status-pill">{{ servico.status }}</span>
+    </article>
+  {% else %}
+    <p>Nenhum servico cadastrado para sua conta ainda.</p>
+  {% endfor %}
+</section>
+{% endblock %}

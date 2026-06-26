@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Solicitação | Admin{% endblock %}
+
+{% block content %}
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Solicitação #{{ solicitacao.id }}</span>
+    <h1>{{ solicitacao.nome }}</h1>
+    <p>{{ solicitacao.servico_desejado }} · <span class="status-pill">{{ solicitacao.status }}</span></p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_solicitacoes') }}">Voltar</a>
+</section>
+
+<section class="detail-grid">
+  <article class="info-card">
+    <h2>Contato</h2>
+    <p><strong>E-mail:</strong> {{ solicitacao.email }}</p>
+    <p><strong>Telefone:</strong> {{ solicitacao.telefone }}</p>
+    <p><strong>CPF/CNPJ:</strong> {{ solicitacao.cpf_cnpj }}</p>
+  </article>
+  <article class="info-card">
+    <h2>Perfil</h2>
+    <p><strong>Tipo:</strong> {{ solicitacao.tipo_cliente }}</p>
+    <p><strong>Serviço:</strong> {{ solicitacao.servico_desejado }}</p>
+    <p><strong>Criada em:</strong> {{ solicitacao.criado_em.strftime("%d/%m/%Y %H:%M") }}</p>
+  </article>
+  <article class="info-card">
+    <h2>Acesso</h2>
+    {% if solicitacao.status == "convertida_cliente" %}
+      <p>Esta solicitação já foi convertida em cliente.</p>
+    {% else %}
+      <p>Ao aprovar, o sistema cria o usuário cliente e gera uma senha temporária.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="list-panel">
+  <h2>Mensagem do interessado</h2>
+  <p>{{ solicitacao.mensagem }}</p>
+</section>
+
+<section class="list-panel">
+  <h2>Atualização interna</h2>
+  <form class="panel-form" method="post" action="{{ url_for('admin_solicitacao_status', id=solicitacao.id) }}">
+    <label>
+      Status
+      <select name="status" required>
+        {% for status in status_solicitacao %}
+          {% if status not in ["aprovada", "convertida_cliente"] %}
+            <option value="{{ status }}" {% if status == solicitacao.status %}selected{% endif %}>{{ status }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Observação interna
+      <textarea name="observacao_admin" rows="4">{{ solicitacao.observacao_admin or "" }}</textarea>
+    </label>
+    <button class="btn btn-primary" type="submit">Salvar atualização</button>
+  </form>
+</section>
+
+<section class="panel-actions">
+  <form method="post" action="{{ url_for('admin_solicitacao_aprovar', id=solicitacao.id) }}">
+    <input type="hidden" name="observacao_admin" value="{{ solicitacao.observacao_admin or '' }}">
+    <button class="btn btn-primary" type="submit" {% if solicitacao.status == "convertida_cliente" %}disabled{% endif %}>Aprovar e criar cliente</button>
+  </form>
+  <form method="post" action="{{ url_for('admin_solicitacao_rejeitar', id=solicitacao.id) }}">
+    <input type="hidden" name="observacao_admin" value="{{ solicitacao.observacao_admin or '' }}">
+    <button class="btn btn-secondary app-secondary" type="submit" {% if solicitacao.status == "convertida_cliente" %}disabled{% endif %}>Rejeitar solicitação</button>
+  </form>
+</section>
+{% endblock %}

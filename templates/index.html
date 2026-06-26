@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luciano Garcês Contabilidade e Perícias</title>
+  <meta name="description" content="Soluções contábeis, fiscais, trabalhistas e perícias para empresas, MEIs e profissionais autônomos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <!-- Cabeçalho fixo: reúne marca, navegação e ação principal. -->
+  <header class="site-header" id="topo">
+    <nav class="nav container" aria-label="Menu principal">
+      <a class="brand" href="#inicio" aria-label="Ir para o início">
+        <span class="brand-mark">LG</span>
+        <span>
+          <strong>Luciano Garcês</strong>
+          <small>Contabilidade e Perícias</small>
+        </span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="nav-links" id="navLinks">
+        <a href="#inicio">Início</a>
+        <a href="#sobre">Sobre</a>
+        <a href="#servicos">Serviços</a>
+        <a href="#diferenciais">Diferenciais</a>
+        <a href="#contato">Contato</a>
+        <a href="{{ url_for('solicitar_atendimento') }}">Solicitar atendimento</a>
+        <a href="{{ url_for('login') }}">Área do cliente</a>
+        <a class="btn btn-small btn-whatsapp" href="https://wa.me/5592991992520" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero: primeira dobra do site, com promessa principal e botões de ação. -->
+    <section class="hero" id="inicio">
+      <div class="container hero-grid">
+        <div class="hero-content">
+          <span class="eyebrow">Contabilidade, perícias e assessoria empresarial</span>
+          <h1>Soluções contábeis para empresas, MEIs e profissionais autônomos</h1>
+          <p>
+            Atuação com contabilidade, perícias, assessoria fiscal, trabalhista e empresarial,
+            sempre com organização, segurança e atendimento próximo.
+          </p>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="{{ url_for('solicitar_atendimento') }}">Solicitar Atendimento</a>
+            <a class="btn btn-primary" href="https://wa.me/5592991992520?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20sobre%20servi%C3%A7os%20cont%C3%A1beis." target="_blank" rel="noopener">Fale pelo WhatsApp</a>
+            <a class="btn btn-secondary" href="#servicos">Conheça os serviços</a>
+          </div>
+
+          <div class="hero-stats" aria-label="Destaques da empresa">
+            <div>
+              <strong>12+</strong>
+              <span>serviços contábeis</span>
+            </div>
+            <div>
+              <strong>MEI</strong>
+              <span>empresas e autônomos</span>
+            </div>
+            <div>
+              <strong>IRPF</strong>
+              <span>declarações e suporte</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="Materiais de escritório contábil">
+          <img src="{{ url_for('static', filename='assets/referencia-instagram.jpg') }}" alt="Arte institucional com serviços de contabilidade Luciano Garcês">
+          <div class="visual-card">
+            <span>Atendimento direto</span>
+            <strong>(92) 99199-2520</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Serviços em cards para facilitar leitura em celular e desktop. -->
+    <section class="section services" id="servicos">
+      <div class="container">
+        <div class="section-heading">
+          <span class="eyebrow">Serviços</span>
+          <h2>Suporte contábil completo para cada fase do seu negócio</h2>
+          <p>Da abertura ao acompanhamento fiscal, trabalhista e documental, com processos claros e orientação técnica.</p>
+        </div>
+
+        <div class="cards-grid services-grid">
+          <article class="service-card"><span>01</span><h3>Abertura, legalização e baixa de empresa</h3><p>Formalização, regularização e encerramento com acompanhamento documental.</p></article>
+          <article class="service-card"><span>02</span><h3>Gestão tributária</h3><p>Organização de obrigações fiscais e orientação para melhor enquadramento.</p></article>
+          <article class="service-card"><span>03</span><h3>Assessoria trabalhista</h3><p>Rotinas de folha, admissões, rescisões e suporte nas relações trabalhistas.</p></article>
+          <article class="service-card"><span>04</span><h3>Assessoria contábil</h3><p>Escrituração, demonstrações e acompanhamento da saúde contábil da empresa.</p></article>
+          <article class="service-card"><span>05</span><h3>Perícia contábil</h3><p>Análises técnicas, cálculos e relatórios para demandas judiciais e extrajudiciais.</p></article>
+          <article class="service-card"><span>06</span><h3>Certificado digital</h3><p>Apoio na emissão e uso de certificado digital para empresas e profissionais.</p></article>
+          <article class="service-card"><span>07</span><h3>Serviços para MEI</h3><p>Regularização, declaração anual, orientação e acompanhamento para microempreendedores.</p></article>
+          <article class="service-card"><span>08</span><h3>Simples Nacional</h3><p>Apuração, obrigações e orientação para empresas optantes pelo regime simplificado.</p></article>
+          <article class="service-card"><span>09</span><h3>Licenciamentos</h3><p>Suporte para licenças e exigências necessárias ao funcionamento do negócio.</p></article>
+          <article class="service-card"><span>10</span><h3>Contratos</h3><p>Organização e apoio documental para relações comerciais e empresariais.</p></article>
+          <article class="service-card"><span>11</span><h3>Declaração de IRPF</h3><p>Preenchimento e conferência da declaração de imposto de renda pessoa física.</p></article>
+          <article class="service-card"><span>12</span><h3>DECORE</h3><p>Emissão de declaração comprobatória de rendimentos para profissionais autônomos.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section about" id="sobre">
+      <div class="container about-grid">
+        <div class="about-panel">
+          <span class="eyebrow">Sobre</span>
+          <h2>Contabilidade com confiança, proximidade e responsabilidade técnica</h2>
+          <p>
+            A Luciano Garcês Contabilidade e Perícias oferece atendimento profissional para quem precisa
+            manter sua empresa regular, tomar decisões com mais segurança e resolver demandas contábeis
+            com clareza.
+          </p>
+          <p>
+            O trabalho é conduzido com atenção aos detalhes, organização documental e compromisso com
+            prazos, buscando entregar um suporte prático para empresas, MEIs e profissionais autônomos.
+          </p>
+        </div>
+
+        <div class="about-list" aria-label="Pilares de atuação">
+          <div><strong>01</strong><span>Atendimento personalizado e orientação objetiva.</span></div>
+          <div><strong>02</strong><span>Rotinas organizadas para reduzir riscos e atrasos.</span></div>
+          <div><strong>03</strong><span>Suporte técnico para decisões fiscais e empresariais.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section differentials" id="diferenciais">
+      <div class="container">
+        <div class="section-heading">
+          <span class="eyebrow">Diferenciais</span>
+          <h2>Uma assessoria feita para trazer tranquilidade</h2>
+        </div>
+
+        <div class="cards-grid differential-grid">
+          <article class="differential-card"><h3>Atendimento personalizado</h3><p>Contato próximo para entender a realidade de cada cliente.</p></article>
+          <article class="differential-card"><h3>Segurança nas informações</h3><p>Cuidado com documentos, dados fiscais e informações estratégicas.</p></article>
+          <article class="differential-card"><h3>Agilidade nos processos</h3><p>Fluxos organizados para acompanhar prazos e demandas importantes.</p></article>
+          <article class="differential-card"><h3>Experiência técnica</h3><p>Conhecimento contábil aplicado a rotinas, perícias e obrigações legais.</p></article>
+          <article class="differential-card"><h3>Suporte para empresas e autônomos</h3><p>Serviços adaptados a diferentes portes, regimes e necessidades.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Formulário de contato enviado ao backend Flask. -->
+    <section class="section contact" id="contato">
+      <div class="container contact-grid">
+        <div class="contact-info">
+          <span class="eyebrow">Contato</span>
+          <h2>Vamos organizar a contabilidade do seu negócio?</h2>
+          <p>Envie uma mensagem e receba orientação sobre o serviço mais adequado para sua necessidade.</p>
+          <a class="phone-link" href="https://wa.me/5592991992520" target="_blank" rel="noopener">(92) 99199-2520</a>
+        </div>
+
+        <form class="contact-form" id="contactForm" action="{{ url_for('salvar_contato') }}" method="post">
+          <label>
+            Nome
+            <input type="text" id="nome" name="nome" placeholder="Seu nome" required>
+          </label>
+          <label>
+            Telefone
+            <input type="tel" id="telefone" name="telefone" placeholder="(92) 99999-9999" required>
+          </label>
+          <label>
+            E-mail
+            <input type="email" id="email" name="email" placeholder="voce@email.com" required>
+          </label>
+          <label>
+            Serviço de interesse
+            <select id="servico" name="servico">
+              <option value="">Selecione um serviço</option>
+              <option value="Abertura de empresa">Abertura de empresa</option>
+              <option value="Gestão tributária">Gestão tributária</option>
+              <option value="Assessoria trabalhista">Assessoria trabalhista</option>
+              <option value="Assessoria contábil">Assessoria contábil</option>
+              <option value="Perícia contábil">Perícia contábil</option>
+              <option value="Certificado digital">Certificado digital</option>
+              <option value="Serviços para MEI">Serviços para MEI</option>
+              <option value="Simples Nacional">Simples Nacional</option>
+              <option value="Declaração de IRPF">Declaração de IRPF</option>
+              <option value="DECORE">DECORE</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </label>
+          <label>
+            Mensagem
+            <textarea id="mensagem" name="mensagem" rows="5" placeholder="Conte como podemos ajudar" required></textarea>
+          </label>
+          <p class="form-message" id="formMessage" aria-live="polite"></p>
+          <button class="btn btn-primary" type="submit">Enviar mensagem</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <strong>Luciano Garcês Contabilidade e Perícias</strong>
+        <p>Contabilidade, perícias, assessoria fiscal, trabalhista e empresarial.</p>
+      </div>
+      <div>
+        <span>Serviços principais</span>
+        <p>Abertura de empresa, Simples Nacional, MEI, IRPF, DECORE e perícia contábil.</p>
+      </div>
+      <div>
+        <span>WhatsApp</span>
+        <a href="https://wa.me/5592991992520" target="_blank" rel="noopener">(92) 99199-2520</a>
+      </div>
+    </div>
+    <p class="copyright">© <span id="year"></span> Luciano Garcês Contabilidade e Perícias. Todos os direitos reservados.</p>
+  </footer>
+
+  <a class="floating-whatsapp" href="https://wa.me/5592991992520" target="_blank" rel="noopener" aria-label="Falar pelo WhatsApp">☎</a>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

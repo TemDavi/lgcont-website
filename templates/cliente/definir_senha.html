@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Definir Senha | Luciano Garces{% endblock %}
+
+{% block content %}
+<section class="auth-panel">
+  <div>
+    <span class="eyebrow">Primeiro acesso</span>
+    <h1>Defina sua senha</h1>
+    <p>Troque a senha temporária por uma senha definitiva para acessar a área do cliente.</p>
+  </div>
+
+  <form class="panel-form" method="post" action="{{ url_for('cliente_definir_senha') }}">
+    <label>
+      Nova senha
+      <input type="password" name="senha" minlength="8" required>
+    </label>
+    <label>
+      Confirmar nova senha
+      <input type="password" name="confirmar_senha" minlength="8" required>
+    </label>
+    <button class="btn btn-primary" type="submit">Salvar senha</button>
+  </form>
+</section>
+{% endblock %}
