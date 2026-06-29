@@ -33,10 +33,8 @@
         <a href="#sobre">Sobre</a>
         <a href="#servicos">Serviços</a>
         <a href="#diferenciais">Diferenciais</a>
-        <a href="#contato">Contato</a>
-        <a href="{{ url_for('solicitar_atendimento') }}">Solicitar atendimento</a>
-        <a href="{{ url_for('login') }}">Área do cliente</a>
-        <a class="btn btn-small btn-whatsapp" href="https://wa.me/5592991992520" target="_blank" rel="noopener">WhatsApp</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn btn-small btn-primary" href="{{ url_for('login') }}">Área do cliente</a>
       </div>
     </nav>
   </header>
@@ -55,7 +53,6 @@
 
           <div class="hero-actions">
             <a class="btn btn-primary" href="{{ url_for('solicitar_atendimento') }}">Solicitar Atendimento</a>
-            <a class="btn btn-primary" href="https://wa.me/5592991992520?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20sobre%20servi%C3%A7os%20cont%C3%A1beis." target="_blank" rel="noopener">Fale pelo WhatsApp</a>
             <a class="btn btn-secondary" href="#servicos">Conheça os serviços</a>
           </div>
 
@@ -152,55 +149,28 @@
       </div>
     </section>
 
-    <!-- Formulário de contato enviado ao backend Flask. -->
-    <section class="section contact" id="contato">
-      <div class="container contact-grid">
-        <div class="contact-info">
-          <span class="eyebrow">Contato</span>
-          <h2>Vamos organizar a contabilidade do seu negócio?</h2>
-          <p>Envie uma mensagem e receba orientação sobre o serviço mais adequado para sua necessidade.</p>
-          <a class="phone-link" href="https://wa.me/5592991992520" target="_blank" rel="noopener">(92) 99199-2520</a>
+    <section class="section faq" id="faq">
+      <div class="container faq-grid">
+        <div class="faq-intro">
+          <span class="eyebrow">Perguntas Frequentes</span>
+          <h2>Respostas rápidas para as dúvidas mais comuns</h2>
+          <p>Abra uma pergunta para ver a resposta. Se ainda precisar de orientação, solicite um atendimento personalizado.</p>
+          <a class="btn btn-primary" href="{{ url_for('solicitar_atendimento') }}">Solicitar Atendimento</a>
         </div>
 
-        <form class="contact-form" id="contactForm" action="{{ url_for('salvar_contato') }}" method="post">
-          <label>
-            Nome
-            <input type="text" id="nome" name="nome" placeholder="Seu nome" required>
-          </label>
-          <label>
-            Telefone
-            <input type="tel" id="telefone" name="telefone" placeholder="(92) 99999-9999" required>
-          </label>
-          <label>
-            E-mail
-            <input type="email" id="email" name="email" placeholder="voce@email.com" required>
-          </label>
-          <label>
-            Serviço de interesse
-            <select id="servico" name="servico">
-              <option value="">Selecione um serviço</option>
-              <option value="Abertura de empresa">Abertura de empresa</option>
-              <option value="Gestão tributária">Gestão tributária</option>
-              <option value="Assessoria trabalhista">Assessoria trabalhista</option>
-              <option value="Assessoria contábil">Assessoria contábil</option>
-              <option value="Perícia contábil">Perícia contábil</option>
-              <option value="Certificado digital">Certificado digital</option>
-              <option value="Serviços para MEI">Serviços para MEI</option>
-              <option value="Simples Nacional">Simples Nacional</option>
-              <option value="Declaração de IRPF">Declaração de IRPF</option>
-              <option value="DECORE">DECORE</option>
-              <option value="Outro">Outro</option>
-            </select>
-          </label>
-          <label>
-            Mensagem
-            <textarea id="mensagem" name="mensagem" rows="5" placeholder="Conte como podemos ajudar" required></textarea>
-          </label>
-          <p class="form-message" id="formMessage" aria-live="polite"></p>
-          <button class="btn btn-primary" type="submit">Enviar mensagem</button>
-        </form>
+        <div class="faq-list">
+          {% for item in faq_items %}
+            <details class="faq-item">
+              <summary>{{ item.pergunta }}</summary>
+              <div class="faq-answer">
+                <p>{{ item.resposta }}</p>
+              </div>
+            </details>
+          {% endfor %}
+        </div>
       </div>
     </section>
+
   </main>
 
   <footer class="footer">
@@ -213,15 +183,13 @@
         <span>Serviços principais</span>
         <p>Abertura de empresa, Simples Nacional, MEI, IRPF, DECORE e perícia contábil.</p>
       </div>
-      <div>
-        <span>WhatsApp</span>
-        <a href="https://wa.me/5592991992520" target="_blank" rel="noopener">(92) 99199-2520</a>
-      </div>
     </div>
     <p class="copyright">© <span id="year"></span> Luciano Garcês Contabilidade e Perícias. Todos os direitos reservados.</p>
   </footer>
 
-  <a class="floating-whatsapp" href="https://wa.me/5592991992520" target="_blank" rel="noopener" aria-label="Falar pelo WhatsApp">☎</a>
+  <a class="floating-whatsapp" href="https://wa.me/5592991992520" target="_blank" rel="noopener" aria-label="Falar pelo WhatsApp">
+    <img src="{{ url_for('static', filename='assets/whatsapplogo.png') }}" alt="" aria-hidden="true">
+  </a>
 
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

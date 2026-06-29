@@ -152,15 +152,13 @@ a {
   transform: none;
 }
 
-.btn-primary,
-.btn-whatsapp {
+.btn-primary {
   color: var(--white);
   background: var(--orange);
   box-shadow: 0 12px 24px rgba(242, 140, 40, 0.28);
 }
 
-.btn-primary:hover,
-.btn-whatsapp:hover {
+.btn-primary:hover {
   background: var(--orange-dark);
 }
 
@@ -315,8 +313,7 @@ a {
 }
 
 .section-heading p,
-.about-panel p,
-.contact-info p {
+.about-panel p {
   color: var(--gray-600);
 }
 
@@ -335,7 +332,6 @@ a {
 
 .service-card,
 .differential-card,
-.contact-form,
 .about-panel,
 .about-list div {
   border: 1px solid var(--gray-200);
@@ -438,97 +434,83 @@ a {
   color: rgba(255, 255, 255, 0.72);
 }
 
-.contact {
+.faq {
   background: var(--gray-50);
 }
 
-.contact-grid {
+.faq-grid {
   display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
-  gap: 34px;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 48px;
   align-items: start;
 }
 
-.phone-link {
-  display: inline-flex;
-  margin-top: 14px;
-  color: var(--blue-950);
-  font-size: 1.6rem;
-  font-weight: 800;
+.faq-intro {
+  position: sticky;
+  top: 112px;
 }
 
-.contact-form {
+.faq-intro h2 {
+  margin-bottom: 16px;
+}
+
+.faq-intro p {
+  margin: 0 0 26px;
+  color: var(--gray-600);
+}
+
+.faq-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  padding: 28px;
-  box-shadow: var(--shadow);
+  gap: 14px;
 }
 
-.contact-form label {
-  display: grid;
-  gap: 8px;
-  color: var(--blue-950);
-  font-weight: 700;
-}
-
-.contact-form label:nth-child(4),
-.contact-form button {
-  grid-column: 1 / -1;
-}
-
-.contact-form input,
-.contact-form select,
-.contact-form textarea {
-  width: 100%;
+.faq-item {
+  overflow: hidden;
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
-  padding: 14px 15px;
-  font: inherit;
-  color: var(--gray-900);
   background: var(--white);
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 22px rgba(11, 22, 68, 0.06);
 }
 
-.contact-form input:focus,
-.contact-form select:focus,
-.contact-form textarea:focus {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 4px rgba(242, 140, 40, 0.14);
+.faq-item summary {
+  position: relative;
+  padding: 20px 58px 20px 22px;
+  color: var(--blue-950);
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
 }
 
-.contact-form label:nth-child(5),
-.form-message {
-  grid-column: 1 / -1;
-}
-
-.form-message {
+.faq-item summary::-webkit-details-marker {
   display: none;
+}
+
+.faq-item summary::after {
+  position: absolute;
+  top: 50%;
+  right: 22px;
+  content: "+";
+  color: var(--orange);
+  font-size: 1.6rem;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.faq-item[open] summary::after {
+  content: "−";
+}
+
+.faq-item[open] summary {
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.faq-answer {
+  padding: 18px 22px 20px;
+}
+
+.faq-answer p {
   margin: 0;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  font-weight: 700;
-}
-
-.form-message.is-success,
-.form-message.is-error {
-  display: block;
-}
-
-.form-message.is-success {
-  color: #0f5132;
-  background: #d1e7dd;
-}
-
-.form-message.is-error {
-  color: #842029;
-  background: #f8d7da;
-}
-
-.contact-form button:disabled {
-  cursor: wait;
-  opacity: 0.72;
+  color: var(--gray-600);
 }
 
 .footer {
@@ -539,7 +521,7 @@ a {
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 0.8fr;
+  grid-template-columns: 1.3fr 1fr;
   gap: 28px;
 }
 
@@ -568,12 +550,15 @@ a {
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  color: var(--white);
   background: #1fa855;
-  font-size: 1.8rem;
-  font-weight: 800;
   box-shadow: 0 16px 35px rgba(31, 168, 85, 0.35);
   transition: transform 0.2s ease;
+}
+
+.floating-whatsapp img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 .floating-whatsapp:hover {
@@ -583,8 +568,12 @@ a {
 @media (max-width: 1024px) {
   .hero-grid,
   .about-grid,
-  .contact-grid {
+  .faq-grid {
     grid-template-columns: 1fr;
+  }
+
+  .faq-intro {
+    position: static;
   }
 
   .services-grid {
@@ -639,16 +628,8 @@ a {
   .hero-stats,
   .services-grid,
   .differential-grid,
-  .footer-grid,
-  .contact-form {
+  .footer-grid {
     grid-template-columns: 1fr;
-  }
-
-  .contact-form label:nth-child(4),
-  .contact-form label:nth-child(5),
-  .form-message,
-  .contact-form button {
-    grid-column: auto;
   }
 
   .hero-visual,
@@ -660,13 +641,8 @@ a {
     padding: 64px 0;
   }
 
-  .about-panel,
-  .contact-form {
+  .about-panel {
     padding: 22px;
-  }
-
-  .phone-link {
-    font-size: 1.25rem;
   }
 }
 
@@ -802,10 +778,37 @@ a {
 }
 
 .summary-card {
+  position: relative;
   padding: 22px;
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
+  color: inherit;
   background: var(--white);
+  box-shadow: 0 4px 14px rgba(11, 22, 68, 0.04);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card::after {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  content: "\2192";
+  color: var(--orange);
+  font-size: 1.25rem;
+  font-weight: 800;
+  transition: transform 0.2s ease;
+}
+
+.summary-card:hover,
+.summary-card:focus-visible {
+  border-color: var(--orange);
+  box-shadow: 0 12px 26px rgba(11, 22, 68, 0.12);
+  transform: translateY(-3px);
+}
+
+.summary-card:hover::after,
+.summary-card:focus-visible::after {
+  transform: translateX(4px);
 }
 
 .summary-card span,
@@ -931,6 +934,45 @@ a {
 .table-panel th {
   color: var(--blue-950);
   background: var(--gray-50);
+}
+
+.clickable-row {
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clickable-row:hover,
+.clickable-row:focus-visible {
+  background: #fff8f1;
+  box-shadow: inset 4px 0 0 var(--orange);
+}
+
+.table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  color: var(--orange-dark);
+  font-weight: 800;
+  background: var(--white);
+  transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.table-action::after {
+  margin-left: 8px;
+  content: "\2192";
+  font-size: 1rem;
+}
+
+.table-action:hover,
+.table-action:focus-visible {
+  color: var(--white);
+  background: var(--orange);
+  box-shadow: 0 8px 18px rgba(242, 140, 40, 0.25);
 }
 
 .table-detail td {

@@ -22,7 +22,6 @@
     <nav class="app-nav" aria-label="Menu da area logada">
       {% if current_user.is_authenticated and current_user.tipo == "admin" %}
         <a href="{{ url_for('admin_dashboard') }}">Painel</a>
-        <a href="{{ url_for('admin_contatos') }}">Contatos</a>
         <a href="{{ url_for('admin_solicitacoes') }}">Solicitações</a>
         <a href="{{ url_for('admin_clientes') }}">Clientes</a>
       {% elif current_user.is_authenticated and current_user.tipo == "cliente" %}

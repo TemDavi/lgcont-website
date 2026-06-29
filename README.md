@@ -1,18 +1,18 @@
 # Luciano Garces Contabilidade e Pericias
 
-Aplicacao Flask para o site institucional, recebimento de contatos, painel administrativo e area do cliente.
+Aplicacao Flask para o site institucional, solicitacoes de atendimento, painel administrativo e area do cliente.
 
 ## Estrutura
 
 - `app.py`: cria a aplicacao Flask, inicializa Flask-Login, registra rotas publicas, administrativas e de cliente.
 - `config.py`: le as variaveis do `.env` e monta a conexao MySQL para o SQLAlchemy.
-- `models.py`: define `Contato`, `SolicitacaoAtendimento`, `Usuario`, `Cliente`, `ServicoCliente` e `Pendencia`.
+- `models.py`: define `SolicitacaoAtendimento`, `Usuario`, `Cliente`, `ServicoCliente` e `Pendencia`.
 - `templates/index.html`: pagina institucional publica.
 - `templates/base.html`: layout base das telas de login, admin e cliente.
 - `templates/admin/`: telas do painel administrativo.
 - `templates/cliente/`: telas da area do cliente.
 - `static/style.css`: estilos do site e dos paineis.
-- `static/script.js`: menu mobile e envio do formulario de contato.
+- `static/script.js`: menu mobile e atualizacao automatica do ano no rodape.
 - `static/assets/`: imagens e arquivos estaticos.
 - `.env.example`: exemplo de configuracao local.
 - `requirements.txt`: dependencias Python.
@@ -29,7 +29,6 @@ CREATE DATABASE site_contabilidade
 
 O projeto usa `db.create_all()` no startup. Assim, quando o banco existir e o `.env` estiver correto, o Flask cria as tabelas automaticamente:
 
-- `contatos`
 - `solicitacoes_atendimento`
 - `usuarios`
 - `clientes`
@@ -102,8 +101,7 @@ O usuario com tipo `admin` sera redirecionado para `/admin`.
 
 Depois de entrar como administrador:
 
-- `/admin`: mostra resumo com contatos, clientes, servicos em andamento e pendencias abertas.
-- `/admin/contatos`: lista mensagens recebidas pelo formulario da home.
+- `/admin`: mostra resumo com solicitacoes, clientes, servicos em andamento e pendencias abertas.
 - `/admin/solicitacoes`: lista solicitacoes de atendimento e permite filtrar por status.
 - `/admin/solicitacoes/<id>`: mostra detalhes da solicitacao, observacao interna e acoes de aprovar ou rejeitar.
 - `/admin/clientes`: lista clientes cadastrados.
@@ -169,7 +167,7 @@ Para conferir no MySQL:
 
 ```sql
 USE site_contabilidade;
-SELECT id, nome, telefone, email, servico, status, criado_em FROM contatos ORDER BY id DESC;
+SELECT id, nome, telefone, email, servico_desejado, status, criado_em FROM solicitacoes_atendimento ORDER BY id DESC;
 ```
 
 ## Cuidados basicos de seguranca

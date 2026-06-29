@@ -52,19 +52,6 @@ class Usuario(UserMixin, db.Model):
     cliente = db.relationship("Cliente", back_populates="usuario", uselist=False)
 
 
-class Contato(db.Model):
-    __tablename__ = "contatos"
-
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(120), nullable=False)
-    telefone = db.Column(db.String(30), nullable=False)
-    email = db.Column(db.String(120), nullable=False)
-    servico = db.Column(db.String(120), nullable=True)
-    mensagem = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(30), nullable=False, default="novo")
-    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-
 class SolicitacaoAtendimento(db.Model):
     __tablename__ = "solicitacoes_atendimento"
 

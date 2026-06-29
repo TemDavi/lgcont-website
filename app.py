@@ -3,10 +3,9 @@ from getpass import getpass
 import secrets
 
 import click
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+from flask import Flask, flash, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from sqlalchemy import inspect, text
-from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
@@ -17,12 +16,52 @@ from models import (
     SERVICOS_ATENDIMENTO,
     TIPOS_CLIENTE,
     Cliente,
-    Contato,
     Pendencia,
     ServicoCliente,
     SolicitacaoAtendimento,
     Usuario,
     db,
+)
+
+
+# Edite esta lista para alterar, adicionar ou remover perguntas do FAQ da home.
+# Cada item precisa apenas dos campos "pergunta" e "resposta".
+FAQ_ITEMS = (
+    {
+        "pergunta": "Quanto custa abrir uma empresa?",
+        "resposta": (
+            "O valor depende do tipo de empresa, da atividade e das taxas dos órgãos responsáveis. "
+            "Solicite um atendimento para receber uma análise e um orçamento adequado ao seu caso."
+        ),
+    },
+    {
+        "pergunta": "Preciso trocar de contador?",
+        "resposta": (
+            "Não necessariamente. Primeiro avaliamos sua situação e orientamos sobre a melhor solução. "
+            "Se a troca for indicada, acompanhamos todo o processo de transição."
+        ),
+    },
+    {
+        "pergunta": "Quanto tempo demora?",
+        "resposta": (
+            "O prazo varia conforme o serviço e a análise dos órgãos envolvidos. Após receber seus dados, "
+            "informamos uma estimativa e acompanhamos cada etapa."
+        ),
+    },
+    {
+        "pergunta": "Vocês atendem online?",
+        "resposta": (
+            "Sim. O atendimento e o envio de documentos podem ser realizados online, com segurança e "
+            "acompanhamento durante todo o processo."
+        ),
+    },
+    {
+        "pergunta": "Quais documentos preciso?",
+        "resposta": (
+            "Os documentos variam de acordo com o serviço solicitado. Durante o primeiro atendimento, "
+            "enviamos uma lista personalizada para evitar documentos desnecessários."
+        ),
+    },
 )
 
 
@@ -104,68 +143,7 @@ def create_app():
     # Rotas publicas do site institucional.
     @app.get("/")
     def index():
-        return render_template("index.html")
-
-    @app.post("/contato")
-    def salvar_contato():
-        dados = request.get_json(silent=True) or request.form
-
-        nome = (dados.get("nome") or "").strip()
-        telefone = (dados.get("telefone") or "").strip()
-        email = (dados.get("email") or "").strip()
-        servico = (dados.get("servico") or "").strip()
-        mensagem = (dados.get("mensagem") or "").strip()
-
-        campos_obrigatorios = {
-            "nome": nome,
-            "telefone": telefone,
-            "email": email,
-            "mensagem": mensagem,
-        }
-        faltando = [campo for campo, valor in campos_obrigatorios.items() if not valor]
-
-        if faltando:
-            return (
-                jsonify(
-                    {
-                        "sucesso": False,
-                        "mensagem": "Preencha nome, telefone, e-mail e mensagem.",
-                        "campos": faltando,
-                    }
-                ),
-                400,
-            )
-
-        contato = Contato(
-            nome=nome,
-            telefone=telefone,
-            email=email,
-            servico=servico or None,
-            mensagem=mensagem,
-            status="novo",
-        )
-
-        try:
-            db.session.add(contato)
-            db.session.commit()
-        except SQLAlchemyError:
-            db.session.rollback()
-            return (
-                jsonify(
-                    {
-                        "sucesso": False,
-                        "mensagem": "Nao foi possivel salvar sua mensagem agora. Tente novamente em instantes.",
-                    }
-                ),
-                500,
-            )
-
-        return jsonify(
-            {
-                "sucesso": True,
-                "mensagem": "Mensagem enviada com sucesso. Em breve entraremos em contato.",
-            }
-        )
+        return render_template("index.html", faq_items=FAQ_ITEMS)
 
     @app.route("/solicitar-atendimento", methods=["GET", "POST"])
     def solicitar_atendimento():
@@ -266,19 +244,12 @@ def create_app():
             ServicoCliente.status.in_(["solicitado", "em análise", "aguardando documentos"])
         ).count()
         resumo = {
-            "contatos": Contato.query.count(),
             "solicitacoes": SolicitacaoAtendimento.query.filter_by(status="pendente").count(),
             "clientes": Cliente.query.count(),
             "servicos": servicos_em_andamento,
             "pendencias": Pendencia.query.filter_by(status="pendente").count(),
         }
         return render_template("admin/dashboard.html", resumo=resumo)
-
-    @app.get("/admin/contatos")
-    @admin_required
-    def admin_contatos():
-        contatos = Contato.query.order_by(Contato.criado_em.desc()).all()
-        return render_template("admin/contatos.html", contatos=contatos)
 
     @app.get("/admin/solicitacoes")
     @admin_required

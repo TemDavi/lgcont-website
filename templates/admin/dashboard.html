@@ -6,20 +6,26 @@
 <section class="panel-heading">
   <span class="eyebrow">Administrador</span>
   <h1>Painel administrativo</h1>
-  <p>Acompanhe contatos, solicitações, clientes, servicos em andamento e pendencias.</p>
+  <p>Acompanhe solicitações, clientes, servicos em andamento e pendencias.</p>
 </section>
 
 <section class="summary-grid">
-  <article class="summary-card"><span>Contatos</span><strong>{{ resumo.contatos }}</strong></article>
-  <article class="summary-card"><span>Solicitações pendentes</span><strong>{{ resumo.solicitacoes }}</strong></article>
-  <article class="summary-card"><span>Clientes</span><strong>{{ resumo.clientes }}</strong></article>
-  <article class="summary-card"><span>Servicos em andamento</span><strong>{{ resumo.servicos }}</strong></article>
-  <article class="summary-card"><span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong></article>
+  <a class="summary-card" href="{{ url_for('admin_solicitacoes', status='pendente') }}">
+    <span>Solicitações pendentes</span><strong>{{ resumo.solicitacoes }}</strong>
+  </a>
+  <a class="summary-card" href="{{ url_for('admin_clientes') }}">
+    <span>Clientes</span><strong>{{ resumo.clientes }}</strong>
+  </a>
+  <a class="summary-card" href="{{ url_for('admin_clientes') }}">
+    <span>Servicos em andamento</span><strong>{{ resumo.servicos }}</strong>
+  </a>
+  <a class="summary-card" href="{{ url_for('admin_clientes') }}">
+    <span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong>
+  </a>
 </section>
 
 <section class="panel-actions">
   <a class="btn btn-primary" href="{{ url_for('admin_cliente_novo') }}">Cadastrar cliente</a>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_solicitacoes') }}">Ver solicitações</a>
-  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_contatos') }}">Ver contatos</a>
 </section>
 {% endblock %}
