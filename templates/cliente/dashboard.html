@@ -10,10 +10,10 @@
 </section>
 
 <section class="summary-grid">
-  <article class="summary-card"><span>Servicos</span><strong>{{ resumo.servicos }}</strong></article>
-  <article class="summary-card"><span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong></article>
-  <article class="summary-card"><span>Servicos finalizados</span><strong>{{ resumo.finalizados }}</strong></article>
-  <article class="summary-card"><span>Tipo</span><strong>{{ cliente.tipo_cliente }}</strong></article>
+  <a class="summary-card" href="{{ url_for('cliente_servicos') }}"><span>Servicos</span><strong>{{ resumo.servicos }}</strong></a>
+  <a class="summary-card" href="{{ url_for('cliente_pendencias', status='pendente') }}"><span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong></a>
+  <a class="summary-card" href="{{ url_for('cliente_servicos', status='finalizado') }}"><span>Servicos finalizados</span><strong>{{ resumo.finalizados }}</strong></a>
+  <article class="summary-card summary-card-static"><span>Tipo</span><strong>{{ cliente.tipo_cliente }}</strong></article>
 </section>
 
 <section class="panel-actions">

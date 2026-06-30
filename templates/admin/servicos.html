@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Servicos em andamento | Admin{% endblock %}
+
+{% block content %}
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Administrador</span>
+    <h1>Servicos em andamento</h1>
+    <p>Atualize os servicos ativos de todos os clientes em um unico lugar.</p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
+</section>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr><th>Cliente</th><th>Servico</th><th>Status</th><th>Atualizado em</th><th>Acao</th></tr>
+    </thead>
+    <tbody>
+      {% for servico in servicos %}
+        <tr class="clickable-row" data-href="{{ url_for('admin_cliente_detalhe', id=servico.cliente_id) }}" tabindex="0" role="link" aria-label="Gerenciar servico de {{ servico.cliente.usuario.nome }}">
+          <td>{{ servico.cliente.usuario.nome }}</td>
+          <td><strong>{{ servico.titulo }}</strong><br><small>{{ servico.descricao or "Sem descricao." }}</small></td>
+          <td><span class="status-pill">{{ servico.status }}</span></td>
+          <td>{{ servico.atualizado_em.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>
+            <form class="table-status-form" method="post" action="{{ url_for('admin_servico_status', id=servico.id) }}">
+              <input type="hidden" name="origem" value="admin_servicos">
+              <select name="status">
+                {% for status in status_servico %}
+                  <option value="{{ status }}" {% if status == servico.status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-small btn-primary" type="submit">Salvar</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">Nenhum servico em andamento.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

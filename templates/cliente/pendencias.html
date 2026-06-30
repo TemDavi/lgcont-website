@@ -3,10 +3,13 @@
 {% block title %}Minhas Pendencias | Cliente{% endblock %}
 
 {% block content %}
-<section class="panel-heading">
-  <span class="eyebrow">Cliente</span>
-  <h1>Minhas pendencias</h1>
-  <p>Veja documentos, informacoes ou acoes solicitadas pelo escritorio.</p>
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Cliente</span>
+    <h1>{% if status_atual == "pendente" %}Pendencias abertas{% else %}Minhas pendencias{% endif %}</h1>
+    <p>Veja documentos, informacoes ou acoes solicitadas pelo escritorio.</p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('cliente_dashboard') }}">Voltar ao painel</a>
 </section>
 
 <section class="list-panel">

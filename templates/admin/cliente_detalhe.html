@@ -3,10 +3,13 @@
 {% block title %}Detalhe do Cliente | Admin{% endblock %}
 
 {% block content %}
-<section class="panel-heading">
-  <span class="eyebrow">Administrador</span>
-  <h1>{{ cliente.usuario.nome }}</h1>
-  <p>{{ cliente.usuario.email }} | {{ cliente.tipo_cliente }}</p>
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Administrador</span>
+    <h1>{{ cliente.usuario.nome }}</h1>
+    <p>{{ cliente.usuario.email }} | {{ cliente.tipo_cliente }}</p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
 </section>
 
 <section class="detail-grid">

@@ -421,8 +421,58 @@ def create_app():
     @app.get("/admin/clientes")
     @admin_required
     def admin_clientes():
-        clientes = Cliente.query.join(Usuario).order_by(Usuario.nome.asc()).all()
-        return render_template("admin/clientes.html", clientes=clientes)
+        filtro = (request.args.get("filtro") or "").strip()
+        tipo_cliente = (request.args.get("tipo_cliente") or "").strip()
+        consulta = Cliente.query.join(Usuario)
+
+        if filtro == "com_servicos":
+            consulta = consulta.filter(Cliente.servicos.any())
+        elif filtro == "pendencias_abertas":
+            consulta = consulta.filter(Cliente.pendencias.any(Pendencia.status == "pendente"))
+        elif filtro == "tipo":
+            if tipo_cliente and tipo_cliente not in TIPOS_CLIENTE:
+                flash("Tipo de cliente inválido.", "erro")
+                return redirect(url_for("admin_clientes"))
+            if tipo_cliente:
+                consulta = consulta.filter(Cliente.tipo_cliente == tipo_cliente)
+        elif filtro:
+            flash("Filtro de clientes inválido.", "erro")
+            return redirect(url_for("admin_clientes"))
+
+        clientes = consulta.order_by(Usuario.nome.asc()).all()
+        return render_template(
+            "admin/clientes.html",
+            clientes=clientes,
+            filtro_atual=filtro,
+            tipo_atual=tipo_cliente,
+            tipos_cliente=TIPOS_CLIENTE,
+        )
+
+    @app.get("/admin/servicos")
+    @admin_required
+    def admin_servicos():
+        servicos = (
+            ServicoCliente.query.join(Cliente).join(Usuario)
+            .filter(ServicoCliente.status.in_(["solicitado", "em análise", "aguardando documentos"]))
+            .order_by(ServicoCliente.atualizado_em.desc())
+            .all()
+        )
+        return render_template("admin/servicos.html", servicos=servicos, status_servico=STATUS_SERVICO)
+
+    @app.get("/admin/pendencias")
+    @admin_required
+    def admin_pendencias():
+        pendencias = (
+            Pendencia.query.join(Cliente).join(Usuario)
+            .filter(Pendencia.status == "pendente")
+            .order_by(Pendencia.criado_em.desc())
+            .all()
+        )
+        return render_template(
+            "admin/pendencias.html",
+            pendencias=pendencias,
+            status_pendencia=STATUS_PENDENCIA,
+        )
 
     @app.route("/admin/clientes/novo", methods=["GET", "POST"])
     @admin_required
@@ -527,6 +577,8 @@ def create_app():
         servico.status = status
         db.session.commit()
         flash("Status do serviço atualizado.", "sucesso")
+        if request.form.get("origem") == "admin_servicos":
+            return redirect(url_for("admin_servicos"))
         return redirect(url_for("admin_cliente_detalhe", id=servico.cliente_id))
 
     @app.post("/admin/pendencias/<int:id>/status")
@@ -542,6 +594,8 @@ def create_app():
         pendencia.status = status
         db.session.commit()
         flash("Pendência atualizada.", "sucesso")
+        if request.form.get("origem") == "admin_pendencias":
+            return redirect(url_for("admin_pendencias"))
         return redirect(url_for("admin_cliente_detalhe", id=pendencia.cliente_id))
 
     # Rotas da area do cliente.
@@ -591,17 +645,39 @@ def create_app():
     @cliente_required
     def cliente_servicos():
         cliente = get_cliente_atual()
-        servicos = ServicoCliente.query.filter_by(cliente_id=cliente.id).order_by(
-            ServicoCliente.criado_em.desc()
+        status = (request.args.get("status") or "").strip()
+        consulta = ServicoCliente.query.filter_by(cliente_id=cliente.id)
+        if status:
+            if status not in STATUS_SERVICO:
+                flash("Status de serviço inválido.", "erro")
+                return redirect(url_for("cliente_servicos"))
+            consulta = consulta.filter_by(status=status)
+        servicos = consulta.order_by(ServicoCliente.criado_em.desc())
+        return render_template(
+            "cliente/servicos.html",
+            cliente=cliente,
+            servicos=servicos,
+            status_atual=status,
         )
-        return render_template("cliente/servicos.html", cliente=cliente, servicos=servicos)
 
     @app.get("/cliente/pendencias")
     @cliente_required
     def cliente_pendencias():
         cliente = get_cliente_atual()
-        pendencias = Pendencia.query.filter_by(cliente_id=cliente.id).order_by(Pendencia.criado_em.desc())
-        return render_template("cliente/pendencias.html", cliente=cliente, pendencias=pendencias)
+        status = (request.args.get("status") or "").strip()
+        consulta = Pendencia.query.filter_by(cliente_id=cliente.id)
+        if status:
+            if status not in STATUS_PENDENCIA:
+                flash("Status de pendência inválido.", "erro")
+                return redirect(url_for("cliente_pendencias"))
+            consulta = consulta.filter_by(status=status)
+        pendencias = consulta.order_by(Pendencia.criado_em.desc())
+        return render_template(
+            "cliente/pendencias.html",
+            cliente=cliente,
+            pendencias=pendencias,
+            status_atual=status,
+        )
 
     @app.route("/cliente/perfil", methods=["GET", "POST"])
     @cliente_required

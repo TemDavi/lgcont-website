@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Pendencias abertas | Admin{% endblock %}
+
+{% block content %}
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Administrador</span>
+    <h1>Pendencias abertas</h1>
+    <p>Consulte e resolva pendencias de todos os clientes.</p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
+</section>
+
+<section class="table-panel">
+  <table>
+    <thead>
+      <tr><th>Cliente</th><th>Pendencia</th><th>Status</th><th>Criada em</th><th>Acao</th></tr>
+    </thead>
+    <tbody>
+      {% for pendencia in pendencias %}
+        <tr class="clickable-row" data-href="{{ url_for('admin_cliente_detalhe', id=pendencia.cliente_id) }}" tabindex="0" role="link" aria-label="Gerenciar pendencia de {{ pendencia.cliente.usuario.nome }}">
+          <td>{{ pendencia.cliente.usuario.nome }}</td>
+          <td><strong>{{ pendencia.titulo }}</strong><br><small>{{ pendencia.descricao or "Sem descricao." }}</small></td>
+          <td><span class="status-pill">{{ pendencia.status }}</span></td>
+          <td>{{ pendencia.criado_em.strftime("%d/%m/%Y %H:%M") }}</td>
+          <td>
+            <form class="table-status-form" method="post" action="{{ url_for('admin_pendencia_status', id=pendencia.id) }}">
+              <input type="hidden" name="origem" value="admin_pendencias">
+              <select name="status">
+                {% for status in status_pendencia %}
+                  <option value="{{ status }}" {% if status == pendencia.status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-small btn-primary" type="submit">Salvar</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">Nenhuma pendencia aberta.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

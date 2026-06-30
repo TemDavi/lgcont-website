@@ -117,10 +117,13 @@ Depois de entrar como administrador:
 - `/admin/solicitacoes`: lista solicitacoes de atendimento e permite filtrar por status.
 - `/admin/solicitacoes/<id>`: mostra detalhes da solicitacao, observacao interna e acoes de aprovar ou rejeitar.
 - `/admin/clientes`: lista clientes cadastrados.
+- `/admin/servicos`: lista todos os servicos em andamento e permite atualizar seus status.
+- `/admin/pendencias`: lista todas as pendencias abertas e permite resolve-las.
 - `/admin/clientes/novo`: cadastra um cliente e cria o usuario de login dele.
 - `/admin/clientes/<id>`: mostra dados do cliente, servicos e pendencias.
 
 No detalhe do cliente, o administrador pode adicionar servicos, alterar status de servicos, adicionar pendencias e marcar pendencias como `pendente` ou `resolvida`.
+Na lista de clientes, tambem e possivel filtrar por clientes com servicos, com pendencias abertas ou por tipo de cliente.
 
 ## Fluxo de solicitacao de atendimento
 

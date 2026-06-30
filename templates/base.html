@@ -52,5 +52,19 @@
 
     {% block content %}{% endblock %}
   </main>
+  <script>
+    document.querySelectorAll(".clickable-row[data-href]").forEach((row) => {
+      const openDestination = () => window.location.assign(row.dataset.href);
+      row.addEventListener("click", (event) => {
+        if (!event.target.closest("a, button, input, select, textarea, form")) openDestination();
+      });
+      row.addEventListener("keydown", (event) => {
+        if ((event.key === "Enter" || event.key === " ") && !event.target.closest("a, button, input, select, textarea, form")) {
+          event.preventDefault();
+          openDestination();
+        }
+      });
+    });
+  </script>
 </body>
 </html>

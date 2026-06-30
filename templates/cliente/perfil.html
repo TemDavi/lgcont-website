@@ -3,10 +3,13 @@
 {% block title %}Meu Perfil | Cliente{% endblock %}
 
 {% block content %}
-<section class="panel-heading">
-  <span class="eyebrow">Cliente</span>
-  <h1>Meu perfil</h1>
-  <p>Confira seus dados principais e atualize telefone e endereco.</p>
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Cliente</span>
+    <h1>Meu perfil</h1>
+    <p>Confira seus dados principais e atualize telefone e endereco.</p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('cliente_dashboard') }}">Voltar ao painel</a>
 </section>
 
 <section class="detail-grid">

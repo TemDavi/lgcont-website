@@ -3,10 +3,13 @@
 {% block title %}Novo Cliente | Admin{% endblock %}
 
 {% block content %}
-<section class="panel-heading">
-  <span class="eyebrow">Administrador</span>
-  <h1>Cadastrar cliente</h1>
-  <p>O cadastro cria o cliente e tambem um usuario de login para ele.</p>
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Administrador</span>
+    <h1>Cadastrar cliente</h1>
+    <p>O cadastro cria o cliente e tambem um usuario de login para ele.</p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
 </section>
 
 <form class="panel-form wide-form" method="post" action="{{ url_for('admin_cliente_novo') }}">

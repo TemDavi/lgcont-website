@@ -41,7 +41,7 @@
     </thead>
     <tbody>
       {% for solicitacao in solicitacoes %}
-        <tr>
+        <tr class="clickable-row" data-href="{{ url_for('admin_solicitacao_detalhe', id=solicitacao.id) }}" tabindex="0" role="link" aria-label="Gerenciar solicitação de {{ solicitacao.nome }}">
           <td>{{ solicitacao.nome }}</td>
           <td>{{ solicitacao.email }}</td>
           <td>{{ solicitacao.telefone }}</td>
@@ -49,7 +49,7 @@
           <td>{{ solicitacao.servico_desejado }}</td>
           <td><span class="status-pill">{{ solicitacao.status }}</span></td>
           <td>{{ solicitacao.criado_em.strftime("%d/%m/%Y %H:%M") }}</td>
-          <td><a href="{{ url_for('admin_solicitacao_detalhe', id=solicitacao.id) }}">Detalhes</a></td>
+          <td><a class="table-action" href="{{ url_for('admin_solicitacao_detalhe', id=solicitacao.id) }}">Gerenciar</a></td>
         </tr>
       {% else %}
         <tr><td colspan="8">Nenhuma solicitação encontrada.</td></tr>
