@@ -11,13 +11,27 @@
 </head>
 <body class="app-body">
   <header class="app-header">
-    <a class="brand" href="{{ url_for('index') }}">
-      <span class="brand-mark">LG</span>
-      <span>
-        <strong>Luciano Garces</strong>
-        <small>Contabilidade e Pericias</small>
-      </span>
-    </a>
+    {% if current_user.is_authenticated %}
+      <a
+        class="brand profile-brand"
+        href="{{ url_for('admin_perfil') if current_user.tipo == 'admin' else url_for('cliente_perfil') }}"
+        aria-label="Abrir perfil de {{ current_user.nome }}"
+      >
+        <img class="profile-avatar" src="{{ url_for('static', filename='assets/perfil.png') }}" alt="">
+        <span>
+          <strong>{{ current_user.nome }}</strong>
+          <small>{{ "Administrador" if current_user.tipo == "admin" else "Cliente" }}</small>
+        </span>
+      </a>
+    {% else %}
+      <a class="brand" href="{{ url_for('index') }}">
+        <span class="brand-mark">LG</span>
+        <span>
+          <strong>Luciano Garces</strong>
+          <small>Contabilidade e Pericias</small>
+        </span>
+      </a>
+    {% endif %}
 
     <nav class="app-nav" aria-label="Menu da area logada">
       {% if current_user.is_authenticated and current_user.tipo == "admin" %}

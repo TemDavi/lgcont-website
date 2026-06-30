@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Meu Perfil | Admin{% endblock %}
+
+{% block content %}
+<section class="panel-heading panel-heading-row">
+  <div>
+    <span class="eyebrow">Administrador</span>
+    <h1>Meu perfil</h1>
+    <p>Confira os dados da sua conta administrativa.</p>
+  </div>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
+</section>
+
+<section class="detail-grid profile-detail-grid">
+  <article class="info-card">
+    <h2>Dados de acesso</h2>
+    <p><strong>Nome:</strong> {{ current_user.nome }}</p>
+    <p><strong>E-mail:</strong> {{ current_user.email }}</p>
+    <p><strong>Tipo:</strong> Administrador</p>
+    <p><strong>Conta criada em:</strong> {{ current_user.criado_em.strftime("%d/%m/%Y %H:%M") }}</p>
+  </article>
+</section>
+{% endblock %}

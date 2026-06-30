@@ -305,6 +305,11 @@ def create_app():
         }
         return render_template("admin/dashboard.html", resumo=resumo)
 
+    @app.get("/admin/perfil")
+    @admin_required
+    def admin_perfil():
+        return render_template("admin/perfil.html")
+
     @app.get("/admin/solicitacoes")
     @admin_required
     def admin_solicitacoes():

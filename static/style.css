@@ -86,6 +86,28 @@ a {
   display: block;
 }
 
+.profile-brand {
+  padding: 6px 8px;
+  margin-left: -8px;
+  border-radius: var(--radius);
+  transition: background 0.2s ease;
+}
+
+.profile-brand:hover,
+.profile-brand:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.profile-avatar {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--white);
+}
+
 .brand small {
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.78rem;
@@ -1032,6 +1054,10 @@ a {
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin-bottom: 24px;
+}
+
+.profile-detail-grid {
+  grid-template-columns: minmax(280px, 560px);
 }
 
 .info-card,

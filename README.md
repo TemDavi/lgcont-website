@@ -114,6 +114,7 @@ O usuario com tipo `admin` sera redirecionado para `/admin`.
 Depois de entrar como administrador:
 
 - `/admin`: mostra resumo com solicitacoes, clientes, servicos em andamento e pendencias abertas.
+- `/admin/perfil`: mostra os dados da conta do administrador conectado.
 - `/admin/solicitacoes`: lista solicitacoes de atendimento e permite filtrar por status.
 - `/admin/solicitacoes/<id>`: mostra detalhes da solicitacao, observacao interna e acoes de aprovar ou rejeitar.
 - `/admin/clientes`: lista clientes cadastrados.
