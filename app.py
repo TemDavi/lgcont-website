@@ -3,12 +3,14 @@ from getpass import getpass
 import secrets
 
 import click
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, current_app, flash, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import inspect, text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
+from email_service import EmailDeliveryError, enviar_email_ativacao
 from models import (
     STATUS_PENDENCIA,
     STATUS_SERVICO,
@@ -107,6 +109,20 @@ def cliente_required(func):
 
 def get_cliente_atual():
     return Cliente.query.filter_by(usuario_id=current_user.id).first_or_404()
+
+
+def gerar_token_ativacao(usuario):
+    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    return serializer.dumps(
+        {"usuario_id": usuario.id, "email": usuario.email},
+        salt="ativacao-cliente",
+    )
+
+
+def validar_token_ativacao(token):
+    serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    validade = current_app.config["ACTIVATION_TOKEN_HOURS"] * 3600
+    return serializer.loads(token, salt="ativacao-cliente", max_age=validade)
 
 
 def atualizar_schema_simples():
@@ -229,6 +245,44 @@ def create_app():
 
         return render_template("login.html")
 
+    @app.route("/ativar-conta/<token>", methods=["GET", "POST"])
+    def ativar_conta(token):
+        try:
+            dados_token = validar_token_ativacao(token)
+        except SignatureExpired:
+            flash("Este link de ativação expirou. Entre em contato para solicitar um novo.", "erro")
+            return redirect(url_for("login"))
+        except BadSignature:
+            flash("Link de ativação inválido.", "erro")
+            return redirect(url_for("login"))
+
+        usuario = db.session.get(Usuario, dados_token.get("usuario_id"))
+        if not usuario or usuario.email != dados_token.get("email") or usuario.tipo != "cliente":
+            flash("Link de ativação inválido.", "erro")
+            return redirect(url_for("login"))
+        if not usuario.precisa_definir_senha:
+            flash("Esta conta já foi ativada. Faça login para continuar.", "sucesso")
+            return redirect(url_for("login"))
+
+        if request.method == "POST":
+            senha = request.form.get("senha") or ""
+            confirmar_senha = request.form.get("confirmar_senha") or ""
+            if len(senha) < 8:
+                flash("A senha deve ter pelo menos 8 caracteres.", "erro")
+                return redirect(url_for("ativar_conta", token=token))
+            if senha != confirmar_senha:
+                flash("As senhas não conferem.", "erro")
+                return redirect(url_for("ativar_conta", token=token))
+
+            usuario.senha_hash = generate_password_hash(senha)
+            usuario.precisa_definir_senha = False
+            usuario.senha_temporaria = None
+            db.session.commit()
+            flash("Senha cadastrada. Agora você já pode entrar na área do cliente.", "sucesso")
+            return redirect(url_for("login"))
+
+        return render_template("ativar_conta.html", token=token)
+
     @app.get("/logout")
     @login_required
     def logout():
@@ -316,15 +370,15 @@ def create_app():
             flash("Já existe um usuário com este e-mail. Revise o cadastro antes de aprovar.", "erro")
             return redirect(url_for("admin_solicitacao_detalhe", id=solicitacao.id))
 
-        # Futuramente, substituir a senha temporaria por link de ativacao enviado por e-mail.
-        senha_temporaria = secrets.token_urlsafe(8)
+        # A senha aleatoria nunca e mostrada: o cliente criara a propria pelo link.
+        senha_inutilizavel = secrets.token_urlsafe(32)
         usuario = Usuario(
             nome=solicitacao.nome,
             email=solicitacao.email,
-            senha_hash=generate_password_hash(senha_temporaria),
+            senha_hash=generate_password_hash(senha_inutilizavel),
             tipo="cliente",
             precisa_definir_senha=True,
-            senha_temporaria=senha_temporaria,
+            senha_temporaria=None,
         )
         cliente = Cliente(
             usuario=usuario,
@@ -336,12 +390,20 @@ def create_app():
         solicitacao.status = "convertida_cliente"
         solicitacao.observacao_admin = observacao_admin or solicitacao.observacao_admin
         db.session.add(cliente)
-        db.session.commit()
 
-        flash(
-            f"Solicitação aprovada e cliente criado. Senha temporária: {senha_temporaria}",
-            "sucesso",
-        )
+        try:
+            db.session.flush()
+            token = gerar_token_ativacao(usuario)
+            link = current_app.config["PUBLIC_BASE_URL"] + url_for("ativar_conta", token=token)
+            enviar_email_ativacao(usuario.email, usuario.nome, link)
+            db.session.commit()
+        except EmailDeliveryError as erro:
+            db.session.rollback()
+            current_app.logger.exception("Falha ao enviar ativação para %s", usuario.email)
+            flash(f"A solicitação não foi aprovada: {erro}", "erro")
+            return redirect(url_for("admin_solicitacao_detalhe", id=solicitacao.id))
+
+        flash("Solicitação aprovada. O e-mail para criação da senha foi enviado.", "sucesso")
         return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
 
     @app.post("/admin/solicitacoes/<int:id>/rejeitar")

@@ -59,7 +59,19 @@ MYSQL_PASSWORD=sua-senha-do-mysql
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_DATABASE=site_contabilidade
+PUBLIC_BASE_URL=https://seu-dominio.com
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=seu-email@gmail.com
+MAIL_PASSWORD=sua-senha-de-app
+MAIL_DEFAULT_SENDER=seu-email@gmail.com
+MAIL_USE_TLS=true
+MAIL_USE_SSL=false
+ACTIVATION_TOKEN_HOURS=24
 ```
+
+Para Gmail, use uma **senha de app** em `MAIL_PASSWORD`, nunca a senha normal da conta.
+Em producao, `PUBLIC_BASE_URL` deve ser o endereco HTTPS real do site.
 
 ## Rodar o projeto
 
@@ -136,15 +148,16 @@ Ao aprovar, o sistema:
 - bloqueia duplicidade de usuario com o mesmo e-mail;
 - cria um `Usuario` com tipo `cliente`;
 - cria um `Cliente` vinculado ao usuario;
-- gera uma senha temporaria;
+- envia um link de ativacao assinado para o e-mail informado;
 - marca `precisa_definir_senha=True`;
 - marca a solicitacao como `convertida_cliente`.
 
-Como ainda nao ha envio de e-mail, a senha temporaria aparece no flash do painel admin depois da aprovacao. No futuro, esse ponto deve virar um link de ativacao enviado por e-mail.
+O link expira no prazo definido por `ACTIVATION_TOKEN_HOURS` (24 horas por padrao).
+Se o SMTP falhar, a aprovacao e desfeita e o administrador recebe uma mensagem de erro.
 
 ## Como o cliente faz login
 
-O cliente usa o e-mail e a senha cadastrados pelo administrador em `/admin/clientes/novo` ou a senha temporaria gerada ao aprovar uma solicitacao de atendimento.
+Ao ter uma solicitacao aprovada, o cliente recebe um e-mail, abre o link de ativacao e cria a propria senha. Depois disso, usa o e-mail e essa senha em `/login`.
 
 Quando o cliente entra com senha temporaria, ele e direcionado para `/cliente/definir-senha` e precisa cadastrar uma senha definitiva antes de acessar a area do cliente.
 
@@ -175,7 +188,7 @@ SELECT id, nome, telefone, email, servico_desejado, status, criado_em FROM solic
 - Nunca salve senhas em texto puro. O projeto usa `generate_password_hash` e `check_password_hash`.
 - Nao publique o arquivo `.env`.
 - Use uma `FLASK_SECRET_KEY` forte em producao.
-- Troque senhas temporarias dos clientes assim que criar um fluxo de alteracao de senha.
+- Mantenha a senha SMTP somente no `.env` e use uma credencial exclusiva para o aplicativo.
 - Use HTTPS em producao.
 - Crie um usuario MySQL com permissao limitada ao banco do projeto.
 - Desative `debug=True` em producao.
