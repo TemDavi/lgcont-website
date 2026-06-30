@@ -35,6 +35,8 @@ STATUS_SERVICO = (
     "cancelado",
 )
 STATUS_PENDENCIA = ("pendente", "resolvida")
+STATUS_AGENDAMENTO = ("agendado", "realizado", "cancelado")
+TIPOS_ATIVIDADE = ("solicitacao", "cliente", "servico", "pendencia", "sistema")
 
 
 class Usuario(UserMixin, db.Model):
@@ -130,3 +132,28 @@ class Pendencia(db.Model):
     criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="pendencias")
+
+
+class Atividade(db.Model):
+    __tablename__ = "atividades"
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(30), nullable=False, index=True)
+    descricao = db.Column(db.String(255), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True, index=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True, index=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    usuario = db.relationship("Usuario")
+    cliente = db.relationship("Cliente")
+
+
+class Agendamento(db.Model):
+    __tablename__ = "agendamentos"
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(150), nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False, index=True)
+    data = db.Column(db.Date, nullable=False, index=True)
+    hora = db.Column(db.Time, nullable=False)
+    status = db.Column(db.String(30), nullable=False, default="agendado", index=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    cliente = db.relationship("Cliente")

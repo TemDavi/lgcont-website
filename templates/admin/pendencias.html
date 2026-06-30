@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base_admin.html" %}
 
 {% block title %}Pendencias abertas | Admin{% endblock %}
 
@@ -11,6 +11,7 @@
   </div>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
 </section>
+<form class="filter-form" method="get"><label>Status<select name="status"><option value="">Todos</option>{% for status in status_pendencia %}<option value="{{ status }}" {% if status == status_atual %}selected{% endif %}>{{ status }}</option>{% endfor %}</select></label><button class="btn btn-primary btn-small">Filtrar</button></form>
 
 <section class="table-panel">
   <table>

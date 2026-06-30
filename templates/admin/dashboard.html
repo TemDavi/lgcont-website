@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "admin/base_admin.html" %}
 
 {% block title %}Painel Admin | Luciano Garces{% endblock %}
 
@@ -9,7 +9,7 @@
   <p>Acompanhe solicitações, clientes, servicos em andamento e pendencias.</p>
 </section>
 
-<section class="summary-grid">
+<section class="summary-grid crm-summary-grid">
   <a class="summary-card" href="{{ url_for('admin_solicitacoes', status='pendente') }}">
     <span>Solicitações pendentes</span><strong>{{ resumo.solicitacoes }}</strong>
   </a>
@@ -22,10 +22,21 @@
   <a class="summary-card" href="{{ url_for('admin_pendencias') }}">
     <span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong>
   </a>
+  <a class="summary-card" href="{{ url_for('admin_servicos', status='finalizado') }}"><span>Serviços finalizados</span><strong>{{ resumo.finalizados }}</strong></a>
+  <a class="summary-card" href="{{ url_for('admin_clientes') }}"><span>Novos clientes do mês</span><strong>{{ resumo.novos_clientes }}</strong></a>
 </section>
 
 <section class="panel-actions">
   <a class="btn btn-primary" href="{{ url_for('admin_cliente_novo') }}">Cadastrar cliente</a>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_solicitacoes') }}">Ver solicitações</a>
+  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_clientes') }}">Criar serviço</a><a class="btn btn-secondary app-secondary" href="{{ url_for('admin_clientes') }}">Criar pendência</a><a class="btn btn-secondary app-secondary" href="{{ url_for('admin_agenda_novo') }}">Agendar atendimento</a>
 </section>
+<div class="dashboard-grid">
+  <section class="crm-card"><h2>Últimas solicitações</h2>{% for item in solicitacoes %}<a href="{{ url_for('admin_solicitacao_detalhe', id=item.id) }}"><strong>{{ item.nome }}</strong><span>{{ item.tipo_cliente }} · {{ item.servico_desejado }} · {{ item.status }}</span><small>{{ item.criado_em.strftime('%d/%m/%Y') }}</small></a>{% else %}<p>Nenhuma solicitação.</p>{% endfor %}</section>
+  <section class="crm-card"><h2>Clientes recentes</h2>{% for item in clientes %}<a href="{{ url_for('admin_cliente_detalhe', id=item.id) }}"><strong>{{ item.usuario.nome }}</strong><span>{{ item.tipo_cliente }} · {{ item.telefone or item.usuario.email }}</span><small>{{ item.criado_em.strftime('%d/%m/%Y') }}</small></a>{% else %}<p>Nenhum cliente.</p>{% endfor %}</section>
+  <section class="crm-card"><h2>Serviços em andamento</h2>{% for item in servicos %}<a href="{{ url_for('admin_cliente_detalhe', id=item.cliente_id) }}"><strong>{{ item.cliente.usuario.nome }} · {{ item.titulo }}</strong><span>{{ item.status }}</span><small>{{ item.atualizado_em.strftime('%d/%m/%Y') }}</small></a>{% else %}<p>Nenhum serviço.</p>{% endfor %}</section>
+  <section class="crm-card"><h2>Pendências abertas</h2>{% for item in pendencias %}<a href="{{ url_for('admin_cliente_detalhe', id=item.cliente_id) }}"><strong>{{ item.cliente.usuario.nome }} · {{ item.titulo }}</strong><span>{{ item.status }}</span><small>{{ item.criado_em.strftime('%d/%m/%Y') }}</small></a>{% else %}<p>Nenhuma pendência.</p>{% endfor %}</section>
+  <section class="crm-card"><h2>Agenda de hoje</h2>{% for item in agenda %}<a href="{{ url_for('admin_agenda') }}"><strong>{{ item.hora.strftime('%H:%M') }} · {{ item.titulo }}</strong><span>{{ item.cliente.usuario.nome }}</span></a>{% else %}<p>Nenhum compromisso hoje.</p>{% endfor %}</section>
+  <section class="crm-card"><h2>Atividade recente</h2>{% for item in atividades %}<div class="activity-item"><strong>{{ item.tipo|title }}</strong><span>{{ item.descricao }}</span><small>{{ item.criado_em.strftime('%d/%m %H:%M') }}</small></div>{% else %}<p>Nenhuma atividade registrada.</p>{% endfor %}</section>
+</div>
 {% endblock %}

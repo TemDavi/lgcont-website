@@ -1,12 +1,13 @@
 from functools import wraps
 from getpass import getpass
 import secrets
+from datetime import date, datetime
 
 import click
 from flask import Flask, current_app, flash, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, or_, text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
@@ -17,6 +18,9 @@ from models import (
     STATUS_SOLICITACAO,
     SERVICOS_ATENDIMENTO,
     TIPOS_CLIENTE,
+    STATUS_AGENDAMENTO,
+    Agendamento,
+    Atividade,
     Cliente,
     Pendencia,
     ServicoCliente,
@@ -24,6 +28,12 @@ from models import (
     Usuario,
     db,
 )
+
+STATUS_SERVICO_ATIVO = ("solicitado", "em análise", "aguardando documentos")
+
+
+def registrar_atividade(tipo, descricao, usuario_id=None, cliente_id=None):
+    db.session.add(Atividade(tipo=tipo, descricao=descricao, usuario_id=usuario_id, cliente_id=cliente_id))
 
 
 # Edite esta lista para alterar, adicionar ou remover perguntas do FAQ da home.
@@ -205,6 +215,7 @@ def create_app():
                 mensagem=mensagem,
             )
             db.session.add(solicitacao)
+            registrar_atividade("solicitacao", f"Nova solicitação criada por {nome}.")
             db.session.commit()
 
             flash(
@@ -294,16 +305,23 @@ def create_app():
     @app.get("/admin")
     @admin_required
     def admin_dashboard():
-        servicos_em_andamento = ServicoCliente.query.filter(
-            ServicoCliente.status.in_(["solicitado", "em análise", "aguardando documentos"])
-        ).count()
+        inicio_mes = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        servicos_em_andamento = ServicoCliente.query.filter(ServicoCliente.status.in_(STATUS_SERVICO_ATIVO)).count()
         resumo = {
             "solicitacoes": SolicitacaoAtendimento.query.filter_by(status="pendente").count(),
             "clientes": Cliente.query.count(),
             "servicos": servicos_em_andamento,
             "pendencias": Pendencia.query.filter_by(status="pendente").count(),
+            "finalizados": ServicoCliente.query.filter_by(status="finalizado").count(),
+            "novos_clientes": Cliente.query.filter(Cliente.criado_em >= inicio_mes).count(),
         }
-        return render_template("admin/dashboard.html", resumo=resumo)
+        return render_template("admin/dashboard.html", resumo=resumo,
+            solicitacoes=SolicitacaoAtendimento.query.order_by(SolicitacaoAtendimento.criado_em.desc()).limit(5).all(),
+            clientes=Cliente.query.order_by(Cliente.criado_em.desc()).limit(5).all(),
+            servicos=ServicoCliente.query.filter(ServicoCliente.status.in_(STATUS_SERVICO_ATIVO)).order_by(ServicoCliente.atualizado_em.desc()).limit(5).all(),
+            pendencias=Pendencia.query.filter_by(status="pendente").order_by(Pendencia.criado_em.desc()).limit(5).all(),
+            atividades=Atividade.query.order_by(Atividade.criado_em.desc()).limit(8).all(),
+            agenda=Agendamento.query.filter_by(data=date.today(), status="agendado").order_by(Agendamento.hora).limit(5).all())
 
     @app.get("/admin/perfil")
     @admin_required
@@ -398,6 +416,8 @@ def create_app():
 
         try:
             db.session.flush()
+            registrar_atividade("solicitacao", f"Solicitação de {solicitacao.nome} aprovada.", current_user.id, cliente.id)
+            registrar_atividade("cliente", f"Cliente {cliente.usuario.nome} cadastrado.", current_user.id, cliente.id)
             token = gerar_token_ativacao(usuario)
             link = current_app.config["PUBLIC_BASE_URL"] + url_for("ativar_conta", token=token)
             enviar_email_ativacao(usuario.email, usuario.nome, link)
@@ -456,27 +476,28 @@ def create_app():
     @app.get("/admin/servicos")
     @admin_required
     def admin_servicos():
-        servicos = (
-            ServicoCliente.query.join(Cliente).join(Usuario)
-            .filter(ServicoCliente.status.in_(["solicitado", "em análise", "aguardando documentos"]))
-            .order_by(ServicoCliente.atualizado_em.desc())
-            .all()
-        )
-        return render_template("admin/servicos.html", servicos=servicos, status_servico=STATUS_SERVICO)
+        status = (request.args.get("status") or "").strip()
+        consulta = ServicoCliente.query.join(Cliente).join(Usuario)
+        if status:
+            if status not in STATUS_SERVICO: return redirect(url_for("admin_servicos"))
+            consulta = consulta.filter(ServicoCliente.status == status)
+        servicos = consulta.order_by(ServicoCliente.atualizado_em.desc()).all()
+        return render_template("admin/servicos.html", servicos=servicos, status_servico=STATUS_SERVICO, status_atual=status)
 
     @app.get("/admin/pendencias")
     @admin_required
     def admin_pendencias():
-        pendencias = (
-            Pendencia.query.join(Cliente).join(Usuario)
-            .filter(Pendencia.status == "pendente")
-            .order_by(Pendencia.criado_em.desc())
-            .all()
-        )
+        status = (request.args.get("status") or "").strip()
+        consulta = Pendencia.query.join(Cliente).join(Usuario)
+        if status:
+            if status not in STATUS_PENDENCIA: return redirect(url_for("admin_pendencias"))
+            consulta = consulta.filter(Pendencia.status == status)
+        pendencias = consulta.order_by(Pendencia.criado_em.desc()).all()
         return render_template(
             "admin/pendencias.html",
             pendencias=pendencias,
             status_pendencia=STATUS_PENDENCIA,
+            status_atual=status,
         )
 
     @app.route("/admin/clientes/novo", methods=["GET", "POST"])
@@ -518,6 +539,8 @@ def create_app():
             )
 
             db.session.add(cliente)
+            db.session.flush()
+            registrar_atividade("cliente", f"Cliente {usuario.nome} cadastrado.", current_user.id, cliente.id)
             db.session.commit()
             flash("Cliente cadastrado com sucesso.", "sucesso")
             return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
@@ -548,6 +571,7 @@ def create_app():
 
         servico = ServicoCliente(cliente=cliente, titulo=titulo, descricao=descricao or None)
         db.session.add(servico)
+        registrar_atividade("servico", f"Serviço {titulo} criado para {cliente.usuario.nome}.", current_user.id, cliente.id)
         db.session.commit()
         flash("Serviço adicionado ao cliente.", "sucesso")
         return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
@@ -565,6 +589,7 @@ def create_app():
 
         pendencia = Pendencia(cliente=cliente, titulo=titulo, descricao=descricao or None)
         db.session.add(pendencia)
+        registrar_atividade("pendencia", f"Pendência {titulo} criada para {cliente.usuario.nome}.", current_user.id, cliente.id)
         db.session.commit()
         flash("Pendência adicionada ao cliente.", "sucesso")
         return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
@@ -579,7 +604,10 @@ def create_app():
             flash("Status de serviço inválido.", "erro")
             return redirect(url_for("admin_cliente_detalhe", id=servico.cliente_id))
 
+        status_anterior = servico.status
         servico.status = status
+        if status != status_anterior:
+            registrar_atividade("servico", f"Serviço {servico.titulo} atualizado para {status}.", current_user.id, servico.cliente_id)
         db.session.commit()
         flash("Status do serviço atualizado.", "sucesso")
         if request.form.get("origem") == "admin_servicos":
@@ -596,12 +624,71 @@ def create_app():
             flash("Status de pendência inválido.", "erro")
             return redirect(url_for("admin_cliente_detalhe", id=pendencia.cliente_id))
 
+        status_anterior = pendencia.status
         pendencia.status = status
+        if status != status_anterior:
+            registrar_atividade("pendencia", f"Pendência {pendencia.titulo} {status}.", current_user.id, pendencia.cliente_id)
         db.session.commit()
         flash("Pendência atualizada.", "sucesso")
         if request.form.get("origem") == "admin_pendencias":
             return redirect(url_for("admin_pendencias"))
         return redirect(url_for("admin_cliente_detalhe", id=pendencia.cliente_id))
+
+    @app.get("/admin/agenda")
+    @admin_required
+    def admin_agenda():
+        status = (request.args.get("status") or "").strip()
+        consulta = Agendamento.query
+        if status in STATUS_AGENDAMENTO:
+            consulta = consulta.filter_by(status=status)
+        return render_template("admin/agenda.html", agendamentos=consulta.order_by(Agendamento.data, Agendamento.hora).all(), status_agendamento=STATUS_AGENDAMENTO, status_atual=status)
+
+    @app.route("/admin/agenda/novo", methods=["GET", "POST"])
+    @admin_required
+    def admin_agenda_novo():
+        if request.method == "POST":
+            titulo = (request.form.get("titulo") or "").strip()
+            cliente_id = request.form.get("cliente_id", type=int)
+            try:
+                data_agenda = datetime.strptime(request.form.get("data") or "", "%Y-%m-%d").date()
+                hora_agenda = datetime.strptime(request.form.get("hora") or "", "%H:%M").time()
+            except ValueError:
+                flash("Informe data e hora válidas.", "erro"); return redirect(url_for("admin_agenda_novo"))
+            cliente = db.session.get(Cliente, cliente_id)
+            if not titulo or not cliente:
+                flash("Informe título e cliente.", "erro"); return redirect(url_for("admin_agenda_novo"))
+            db.session.add(Agendamento(titulo=titulo, descricao=(request.form.get("descricao") or "").strip() or None, cliente=cliente, data=data_agenda, hora=hora_agenda))
+            registrar_atividade("sistema", f"Atendimento agendado para {cliente.usuario.nome}.", current_user.id, cliente.id)
+            db.session.commit(); flash("Agendamento criado.", "sucesso")
+            return redirect(url_for("admin_agenda"))
+        return render_template("admin/agenda_novo.html", clientes=Cliente.query.join(Usuario).order_by(Usuario.nome).all())
+
+    @app.get("/admin/mensagens")
+    @admin_required
+    def admin_mensagens(): return render_template("admin/mensagens.html")
+
+    @app.get("/admin/configuracoes")
+    @admin_required
+    def admin_configuracoes(): return render_template("admin/configuracoes.html")
+
+    @app.get("/admin/relatorios")
+    @admin_required
+    def admin_relatorios():
+        metricas = {"clientes": Cliente.query.count(), "solicitacoes": SolicitacaoAtendimento.query.count(), "aprovadas": SolicitacaoAtendimento.query.filter(SolicitacaoAtendimento.status.in_(["aprovada", "convertida_cliente"])).count(), "rejeitadas": SolicitacaoAtendimento.query.filter_by(status="rejeitada").count(), "finalizados": ServicoCliente.query.filter_by(status="finalizado").count(), "andamento": ServicoCliente.query.filter(ServicoCliente.status.in_(STATUS_SERVICO_ATIVO)).count(), "pendentes": Pendencia.query.filter_by(status="pendente").count(), "resolvidas": Pendencia.query.filter_by(status="resolvida").count()}
+        def contagens(modelo, campo, valores): return [modelo.query.filter(campo == valor).count() for valor in valores]
+        graficos = {"tipos": list(TIPOS_CLIENTE), "clientes_tipo": contagens(Cliente, Cliente.tipo_cliente, TIPOS_CLIENTE), "status_servico": list(STATUS_SERVICO), "servicos_status": contagens(ServicoCliente, ServicoCliente.status, STATUS_SERVICO), "status_solicitacao": list(STATUS_SOLICITACAO), "solicitacoes_status": contagens(SolicitacaoAtendimento, SolicitacaoAtendimento.status, STATUS_SOLICITACAO)}
+        return render_template("admin/relatorios.html", metricas=metricas, graficos=graficos)
+
+    @app.get("/admin/busca")
+    @admin_required
+    def admin_busca():
+        q = (request.args.get("q") or "").strip(); termo = f"%{q}%"
+        clientes = solicitacoes = servicos = []
+        if q:
+            clientes = Cliente.query.join(Usuario).filter(or_(Usuario.nome.ilike(termo), Usuario.email.ilike(termo), Cliente.telefone.ilike(termo))).limit(20).all()
+            solicitacoes = SolicitacaoAtendimento.query.filter(or_(SolicitacaoAtendimento.nome.ilike(termo), SolicitacaoAtendimento.email.ilike(termo), SolicitacaoAtendimento.servico_desejado.ilike(termo))).limit(20).all()
+            servicos = ServicoCliente.query.join(Cliente).join(Usuario).filter(or_(ServicoCliente.titulo.ilike(termo), Usuario.nome.ilike(termo))).limit(20).all()
+        return render_template("admin/busca.html", q=q, clientes=clientes, solicitacoes=solicitacoes, servicos=servicos)
 
     # Rotas da area do cliente.
     @app.route("/cliente/definir-senha", methods=["GET", "POST"])
@@ -644,7 +731,11 @@ def create_app():
             "pendencias": Pendencia.query.filter_by(cliente_id=cliente.id, status="pendente").count(),
             "finalizados": ServicoCliente.query.filter_by(cliente_id=cliente.id, status="finalizado").count(),
         }
-        return render_template("cliente/dashboard.html", cliente=cliente, resumo=resumo)
+        return render_template("cliente/dashboard.html", cliente=cliente, resumo=resumo, ultimos_servicos=ServicoCliente.query.filter_by(cliente_id=cliente.id).order_by(ServicoCliente.atualizado_em.desc()).limit(4).all(), agendamentos=Agendamento.query.filter(Agendamento.cliente_id == cliente.id, Agendamento.data >= date.today(), Agendamento.status == "agendado").order_by(Agendamento.data, Agendamento.hora).limit(4).all())
+
+    @app.get("/cliente/mensagens")
+    @cliente_required
+    def cliente_mensagens(): return render_template("cliente/mensagens.html", cliente=get_cliente_atual())
 
     @app.get("/cliente/servicos")
     @cliente_required

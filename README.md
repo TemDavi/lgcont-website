@@ -34,6 +34,8 @@ O projeto usa `db.create_all()` no startup. Assim, quando o banco existir e o `.
 - `clientes`
 - `servicos_cliente`
 - `pendencias`
+- `atividades`
+- `agendamentos`
 
 ## Instalar dependencias
 
@@ -120,11 +122,22 @@ Depois de entrar como administrador:
 - `/admin/clientes`: lista clientes cadastrados.
 - `/admin/servicos`: lista todos os servicos em andamento e permite atualizar seus status.
 - `/admin/pendencias`: lista todas as pendencias abertas e permite resolve-las.
+- `/admin/agenda` e `/admin/agenda/novo`: lista e cria agendamentos.
+- `/admin/busca?q=texto`: pesquisa clientes, solicitacoes e servicos.
+- `/admin/relatorios`: indicadores e graficos do sistema.
+- `/admin/mensagens` e `/cliente/mensagens`: placeholders para o modulo futuro.
+- `/admin/configuracoes`: informacoes basicas do sistema e usuario.
 - `/admin/clientes/novo`: cadastra um cliente e cria o usuario de login dele.
 - `/admin/clientes/<id>`: mostra dados do cliente, servicos e pendencias.
 
 No detalhe do cliente, o administrador pode adicionar servicos, alterar status de servicos, adicionar pendencias e marcar pendencias como `pendente` ou `resolvida`.
 Na lista de clientes, tambem e possivel filtrar por clientes com servicos, com pendencias abertas ou por tipo de cliente.
+
+## Modulos do CRM
+
+O painel registra automaticamente em `atividades` a criacao e aprovacao de solicitacoes, cadastro de clientes, criacao e atualizacao de servicos e criacao ou resolucao de pendencias. A tabela `agendamentos` guarda titulo, cliente, data, hora e status. Em bancos existentes, basta reiniciar a aplicacao: o `db.create_all()` cria as duas novas tabelas sem apagar dados.
+
+Para testar: entre como administrador, confira os seis indicadores em `/admin`, crie um compromisso em `/admin/agenda/novo`, use a pesquisa da barra superior e abra `/admin/relatorios`. Depois entre como cliente para conferir a sidebar, os servicos, pendencias, proximos agendamentos e `/cliente/mensagens`. As rotas continuam protegidas por perfil.
 
 ## Fluxo de solicitacao de atendimento
 
