@@ -1,1 +1,13 @@
-{% extends "cliente/base_cliente.html" %}{% block title %}Mensagens | Cliente{% endblock %}{% block content %}<section class="crm-card"><span class="eyebrow">Mensagens</span><h1>Mensagens</h1><p>Módulo de mensagens será disponibilizado em breve.</p></section>{% endblock %}
+{% extends "cliente/base_cliente.html" %}
+{% block title %}Mensagens | Cliente{% endblock %}
+{% block content %}
+<section class="panel-heading heading-with-action"><div><span class="eyebrow">Mensagens</span><h1>Minhas conversas</h1><p>Converse com a equipe sobre seus atendimentos.</p></div><a class="btn btn-primary" href="{{ url_for('cliente_conversa_nova') }}">Nova conversa</a></section>
+<section class="crm-card conversation-list">
+  {% for conversa in conversas %}
+  <a href="{{ url_for('cliente_conversa', conversa_id=conversa.id) }}">
+    <span><strong>{{ conversa.assunto }}</strong><small>{% if conversa.servico %}{{ conversa.servico.titulo }} · {% endif %}{{ conversa.ultima_mensagem.texto|truncate(90) if conversa.ultima_mensagem else 'Conversa sem mensagens.' }}</small></span>
+    <span class="conversation-side"><small>{{ conversa.atualizado_em.strftime('%d/%m/%Y %H:%M') }}</small><em class="status-pill">{{ conversa.status }}</em>{% if nao_lidas[conversa.id] %}<b class="badge-unread">{{ nao_lidas[conversa.id] }}</b>{% endif %}</span>
+  </a>
+  {% else %}<p>Você ainda não iniciou nenhuma conversa.</p>{% endfor %}
+</section>
+{% endblock %}

@@ -22,6 +22,8 @@ from models import (
     Agendamento,
     Atividade,
     Cliente,
+    Conversa,
+    Mensagem,
     Pendencia,
     ServicoCliente,
     SolicitacaoAtendimento,
@@ -121,6 +123,47 @@ def get_cliente_atual():
     return Cliente.query.filter_by(usuario_id=current_user.id).first_or_404()
 
 
+def contar_mensagens_nao_lidas(cliente_id=None):
+    consulta = Mensagem.query.join(Conversa).filter(
+        Mensagem.lida.is_(False), Mensagem.usuario_id != current_user.id
+    )
+    if cliente_id is not None:
+        consulta = consulta.filter(Conversa.cliente_id == cliente_id)
+    return consulta.count()
+
+
+def marcar_mensagens_como_lidas(conversa):
+    alteradas = Mensagem.query.filter(
+        Mensagem.conversa_id == conversa.id,
+        Mensagem.usuario_id != current_user.id,
+        Mensagem.lida.is_(False),
+    ).update({Mensagem.lida: True}, synchronize_session=False)
+    if alteradas:
+        db.session.commit()
+
+
+def validar_texto_mensagem():
+    texto_mensagem = (request.form.get("texto") or "").strip()
+    if not texto_mensagem:
+        return None, "A mensagem não pode estar vazia."
+    if len(texto_mensagem) > 2000:
+        return None, "A mensagem deve ter no máximo 2000 caracteres."
+    return texto_mensagem, None
+
+
+def enviar_mensagem(conversa, texto_mensagem):
+    mensagem = Mensagem(conversa=conversa, usuario=current_user, texto=texto_mensagem)
+    conversa.atualizado_em = datetime.utcnow()
+    db.session.add(mensagem)
+    registrar_atividade(
+        "mensagem",
+        f"Mensagem enviada na conversa {conversa.assunto}.",
+        current_user.id,
+        conversa.cliente_id,
+    )
+    db.session.commit()
+
+
 def gerar_token_ativacao(usuario):
     serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
     return serializer.dumps(
@@ -165,6 +208,17 @@ def create_app():
         # Nesta etapa inicial, o create_all facilita criar as novas tabelas.
         db.create_all()
         atualizar_schema_simples()
+
+    @app.context_processor
+    def disponibilizar_contador_mensagens():
+        if not current_user.is_authenticated:
+            return {"mensagens_nao_lidas": 0}
+        if current_user.tipo == "cliente":
+            cliente = Cliente.query.filter_by(usuario_id=current_user.id).first()
+            total = contar_mensagens_nao_lidas(cliente.id) if cliente else 0
+        else:
+            total = contar_mensagens_nao_lidas()
+        return {"mensagens_nao_lidas": total}
 
     # Rotas publicas do site institucional.
     @app.get("/")
@@ -314,6 +368,7 @@ def create_app():
             "pendencias": Pendencia.query.filter_by(status="pendente").count(),
             "finalizados": ServicoCliente.query.filter_by(status="finalizado").count(),
             "novos_clientes": Cliente.query.filter(Cliente.criado_em >= inicio_mes).count(),
+            "mensagens": contar_mensagens_nao_lidas(),
         }
         return render_template("admin/dashboard.html", resumo=resumo,
             solicitacoes=SolicitacaoAtendimento.query.order_by(SolicitacaoAtendimento.criado_em.desc()).limit(5).all(),
@@ -665,7 +720,72 @@ def create_app():
 
     @app.get("/admin/mensagens")
     @admin_required
-    def admin_mensagens(): return render_template("admin/mensagens.html")
+    def admin_mensagens():
+        conversas = Conversa.query.order_by(Conversa.atualizado_em.desc()).all()
+        nao_lidas = {
+            conversa.id: Mensagem.query.filter(
+                Mensagem.conversa_id == conversa.id,
+                Mensagem.usuario_id != current_user.id,
+                Mensagem.lida.is_(False),
+            ).count()
+            for conversa in conversas
+        }
+        return render_template("admin/mensagens.html", conversas=conversas, nao_lidas=nao_lidas)
+
+    @app.get("/admin/mensagens/<int:conversa_id>")
+    @admin_required
+    def admin_conversa(conversa_id):
+        conversa = Conversa.query.get_or_404(conversa_id)
+        marcar_mensagens_como_lidas(conversa)
+        return render_template("admin/conversa.html", conversa=conversa)
+
+    @app.post("/admin/mensagens/<int:conversa_id>/enviar")
+    @admin_required
+    def admin_conversa_enviar(conversa_id):
+        conversa = Conversa.query.get_or_404(conversa_id)
+        if conversa.status == "fechada":
+            flash("Esta conversa está fechada.", "erro")
+            return redirect(url_for("admin_conversa", conversa_id=conversa.id))
+        texto_mensagem, erro = validar_texto_mensagem()
+        if erro:
+            flash(erro, "erro")
+        else:
+            enviar_mensagem(conversa, texto_mensagem)
+        return redirect(url_for("admin_conversa", conversa_id=conversa.id))
+
+    @app.post("/admin/mensagens/<int:conversa_id>/fechar")
+    @admin_required
+    def admin_conversa_fechar(conversa_id):
+        conversa = Conversa.query.get_or_404(conversa_id)
+        if conversa.status != "fechada":
+            conversa.status = "fechada"
+            conversa.atualizado_em = datetime.utcnow()
+            registrar_atividade("mensagem", f"Conversa {conversa.assunto} fechada.", current_user.id, conversa.cliente_id)
+            db.session.commit()
+            flash("Conversa fechada.", "sucesso")
+        return redirect(url_for("admin_conversa", conversa_id=conversa.id))
+
+    @app.route("/admin/clientes/<int:cliente_id>/conversas/nova", methods=["GET", "POST"])
+    @admin_required
+    def admin_conversa_nova(cliente_id):
+        cliente = Cliente.query.get_or_404(cliente_id)
+        if request.method == "POST":
+            assunto = (request.form.get("assunto") or "").strip()
+            servico_id = request.form.get("servico_id", type=int)
+            servico = db.session.get(ServicoCliente, servico_id) if servico_id else None
+            if not assunto or len(assunto) > 150:
+                flash("Informe um assunto com até 150 caracteres.", "erro")
+            elif servico_id and (not servico or servico.cliente_id != cliente.id):
+                flash("Serviço inválido para este cliente.", "erro")
+            else:
+                conversa = Conversa(cliente=cliente, servico=servico, assunto=assunto)
+                db.session.add(conversa)
+                db.session.flush()
+                registrar_atividade("mensagem", f"Conversa {assunto} criada.", current_user.id, cliente.id)
+                db.session.commit()
+                flash("Conversa criada.", "sucesso")
+                return redirect(url_for("admin_conversa", conversa_id=conversa.id))
+        return render_template("admin/conversa_nova.html", cliente=cliente)
 
     @app.get("/admin/configuracoes")
     @admin_required
@@ -730,12 +850,69 @@ def create_app():
             "servicos": ServicoCliente.query.filter_by(cliente_id=cliente.id).count(),
             "pendencias": Pendencia.query.filter_by(cliente_id=cliente.id, status="pendente").count(),
             "finalizados": ServicoCliente.query.filter_by(cliente_id=cliente.id, status="finalizado").count(),
+            "mensagens": contar_mensagens_nao_lidas(cliente.id),
         }
         return render_template("cliente/dashboard.html", cliente=cliente, resumo=resumo, ultimos_servicos=ServicoCliente.query.filter_by(cliente_id=cliente.id).order_by(ServicoCliente.atualizado_em.desc()).limit(4).all(), agendamentos=Agendamento.query.filter(Agendamento.cliente_id == cliente.id, Agendamento.data >= date.today(), Agendamento.status == "agendado").order_by(Agendamento.data, Agendamento.hora).limit(4).all())
 
     @app.get("/cliente/mensagens")
     @cliente_required
-    def cliente_mensagens(): return render_template("cliente/mensagens.html", cliente=get_cliente_atual())
+    def cliente_mensagens():
+        cliente = get_cliente_atual()
+        conversas = Conversa.query.filter_by(cliente_id=cliente.id).order_by(Conversa.atualizado_em.desc()).all()
+        nao_lidas = {
+            conversa.id: Mensagem.query.filter(
+                Mensagem.conversa_id == conversa.id,
+                Mensagem.usuario_id != current_user.id,
+                Mensagem.lida.is_(False),
+            ).count()
+            for conversa in conversas
+        }
+        return render_template("cliente/mensagens.html", cliente=cliente, conversas=conversas, nao_lidas=nao_lidas)
+
+    @app.get("/cliente/mensagens/<int:conversa_id>")
+    @cliente_required
+    def cliente_conversa(conversa_id):
+        cliente = get_cliente_atual()
+        conversa = Conversa.query.filter_by(id=conversa_id, cliente_id=cliente.id).first_or_404()
+        marcar_mensagens_como_lidas(conversa)
+        return render_template("cliente/conversa.html", cliente=cliente, conversa=conversa)
+
+    @app.post("/cliente/mensagens/<int:conversa_id>/enviar")
+    @cliente_required
+    def cliente_conversa_enviar(conversa_id):
+        cliente = get_cliente_atual()
+        conversa = Conversa.query.filter_by(id=conversa_id, cliente_id=cliente.id).first_or_404()
+        if conversa.status == "fechada":
+            flash("Esta conversa está fechada.", "erro")
+            return redirect(url_for("cliente_conversa", conversa_id=conversa.id))
+        texto_mensagem, erro = validar_texto_mensagem()
+        if erro:
+            flash(erro, "erro")
+        else:
+            enviar_mensagem(conversa, texto_mensagem)
+        return redirect(url_for("cliente_conversa", conversa_id=conversa.id))
+
+    @app.route("/cliente/mensagens/nova", methods=["GET", "POST"])
+    @cliente_required
+    def cliente_conversa_nova():
+        cliente = get_cliente_atual()
+        if request.method == "POST":
+            assunto = (request.form.get("assunto") or "").strip()
+            servico_id = request.form.get("servico_id", type=int)
+            servico = db.session.get(ServicoCliente, servico_id) if servico_id else None
+            if not assunto or len(assunto) > 150:
+                flash("Informe um assunto com até 150 caracteres.", "erro")
+            elif servico_id and (not servico or servico.cliente_id != cliente.id):
+                flash("Serviço inválido.", "erro")
+            else:
+                conversa = Conversa(cliente=cliente, servico=servico, assunto=assunto)
+                db.session.add(conversa)
+                db.session.flush()
+                registrar_atividade("mensagem", f"Conversa {assunto} criada pelo cliente.", current_user.id, cliente.id)
+                db.session.commit()
+                flash("Conversa iniciada.", "sucesso")
+                return redirect(url_for("cliente_conversa", conversa_id=conversa.id))
+        return render_template("cliente/conversa_nova.html", cliente=cliente)
 
     @app.get("/cliente/servicos")
     @cliente_required

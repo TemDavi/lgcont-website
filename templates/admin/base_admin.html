@@ -1,22 +1,2 @@
 {% extends "base.html" %}
-{% block body %}
-<div class="crm-shell">
-  <aside class="crm-sidebar">
-    <a class="crm-logo" href="{{ url_for('admin_dashboard') }}"><span>LG</span><strong>LG Contabilidade</strong></a>
-    <nav>
-      <a href="{{ url_for('admin_dashboard') }}">Dashboard</a><a href="{{ url_for('admin_clientes') }}">Clientes</a><a href="{{ url_for('admin_solicitacoes') }}">Solicitações</a><a href="{{ url_for('admin_servicos') }}">Serviços</a><a href="{{ url_for('admin_pendencias') }}">Pendências</a>
-      <span class="nav-divider"></span>
-      <a href="{{ url_for('admin_agenda') }}">Agenda</a><a href="{{ url_for('admin_mensagens') }}">Mensagens</a><a href="{{ url_for('admin_relatorios') }}">Relatórios</a><a href="{{ url_for('admin_configuracoes') }}">Configurações</a><a href="{{ url_for('logout') }}">Sair</a>
-    </nav>
-  </aside>
-  <div class="crm-workspace">
-    <header class="crm-topbar">
-      <form action="{{ url_for('admin_busca') }}" method="get"><input type="search" name="q" value="{{ request.args.get('q', '') if request.endpoint == 'admin_busca' else '' }}" placeholder="Pesquisar clientes, solicitações e serviços..."></form>
-      <span class="notification-dot" title="Notificações">●</span>
-      <a class="topbar-user" href="{{ url_for('admin_perfil') }}"><img src="{{ url_for('static', filename='assets/perfil.png') }}" alt=""><span><strong>{{ current_user.nome }}</strong><small>Administrador</small></span></a>
-      <a class="btn btn-small app-secondary" href="{{ url_for('logout') }}">Sair</a>
-    </header>
-    <main class="crm-main">{% include "partials/flashes.html" %}{% block content %}{% endblock %}</main>
-  </div>
-</div>
-{% endblock %}
+{% block body %}<div class="crm-shell"><aside class="crm-sidebar"><a class="crm-logo" href="{{ url_for('admin_dashboard') }}"><span>LG</span><strong>LG Contabilidade</strong></a><nav><a href="{{ url_for('admin_dashboard') }}">Dashboard</a><a href="{{ url_for('admin_clientes') }}">Clientes</a><a href="{{ url_for('admin_solicitacoes') }}">Solicitações</a><a href="{{ url_for('admin_servicos') }}">Serviços</a><a href="{{ url_for('admin_pendencias') }}">Pendências</a><span class="nav-divider"></span><a href="{{ url_for('admin_agenda') }}">Agenda</a><a href="{{ url_for('admin_mensagens') }}">Mensagens {% if mensagens_nao_lidas %}<span class="badge-unread">{{ mensagens_nao_lidas }}</span>{% endif %}</a><a href="{{ url_for('admin_relatorios') }}">Relatórios</a><a href="{{ url_for('admin_configuracoes') }}">Configurações</a><a href="{{ url_for('logout') }}">Sair</a></nav></aside><div class="crm-workspace"><header class="crm-topbar"><form action="{{ url_for('admin_busca') }}" method="get"><input type="search" name="q" value="{{ request.args.get('q', '') if request.endpoint == 'admin_busca' else '' }}" placeholder="Pesquisar clientes, solicitações e serviços..."></form><span class="notification-dot" title="Notificações">●</span><a class="topbar-user" href="{{ url_for('admin_perfil') }}"><img src="{{ url_for('static', filename='assets/perfil.png') }}" alt=""><span><strong>{{ current_user.nome }}</strong><small>Administrador</small></span></a><a class="btn btn-small app-secondary" href="{{ url_for('logout') }}">Sair</a></header><main class="crm-main">{% include "partials/flashes.html" %}{% block content %}{% endblock %}</main></div></div>{% endblock %}

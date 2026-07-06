@@ -14,6 +14,7 @@
   <a class="summary-card" href="{{ url_for('cliente_servicos') }}"><span>Servicos</span><strong>{{ resumo.servicos }}</strong></a>
   <a class="summary-card" href="{{ url_for('cliente_pendencias', status='pendente') }}"><span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong></a>
   <a class="summary-card" href="{{ url_for('cliente_servicos', status='finalizado') }}"><span>Servicos finalizados</span><strong>{{ resumo.finalizados }}</strong></a>
+  <a class="summary-card" href="{{ url_for('cliente_mensagens') }}"><span>Mensagens não lidas</span><strong>{{ resumo.mensagens }}</strong></a>
   <article class="summary-card summary-card-static"><span>Tipo</span><strong>{{ cliente.tipo_cliente }}</strong></article>
 </section>
 

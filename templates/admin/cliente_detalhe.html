@@ -9,7 +9,7 @@
     <h1>{{ cliente.usuario.nome }}</h1>
     <p>{{ cliente.usuario.email }} | {{ cliente.tipo_cliente }}</p>
   </div>
-  <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
+  <div class="panel-actions"><a class="btn btn-primary" href="{{ url_for('admin_conversa_nova', cliente_id=cliente.id) }}">Nova conversa</a><a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a></div>
 </section>
 
 <section class="detail-grid">

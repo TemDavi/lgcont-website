@@ -24,6 +24,7 @@
   </a>
   <a class="summary-card" href="{{ url_for('admin_servicos', status='finalizado') }}"><span>Serviços finalizados</span><strong>{{ resumo.finalizados }}</strong></a>
   <a class="summary-card" href="{{ url_for('admin_clientes') }}"><span>Novos clientes do mês</span><strong>{{ resumo.novos_clientes }}</strong></a>
+  <a class="summary-card" href="{{ url_for('admin_mensagens') }}"><span>Mensagens não lidas</span><strong>{{ resumo.mensagens }}</strong></a>
 </section>
 
 <section class="panel-actions">

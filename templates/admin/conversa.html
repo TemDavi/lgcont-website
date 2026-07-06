@@ -1,0 +1,11 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ conversa.assunto }} | Mensagens{% endblock %}
+{% block content %}
+<section class="chat-container">
+  <header class="chat-header"><div><a href="{{ url_for('admin_mensagens') }}">← Conversas</a><h1>{{ conversa.assunto }}</h1><p>{{ conversa.cliente.usuario.nome }}{% if conversa.servico %} · {{ conversa.servico.titulo }}{% endif %}</p></div><span class="status-pill">{{ conversa.status }}</span></header>
+  <div class="chat-messages" id="chat-messages">
+    {% for mensagem in conversa.mensagens %}<article class="message-bubble {{ 'message-own' if mensagem.usuario_id == current_user.id else 'message-other' }}"><strong>{{ mensagem.usuario.nome }} · {{ 'Administrador' if mensagem.usuario.tipo == 'admin' else 'Cliente' }}</strong><p>{{ mensagem.texto }}</p><small class="message-meta">{{ mensagem.criado_em.strftime('%d/%m/%Y %H:%M') }}</small></article>{% else %}<p class="chat-empty">Ainda não há mensagens nesta conversa.</p>{% endfor %}
+  </div>
+  {% if conversa.status == 'aberta' %}<form class="chat-input" method="post" action="{{ url_for('admin_conversa_enviar', conversa_id=conversa.id) }}"><textarea name="texto" maxlength="2000" required placeholder="Digite sua mensagem..."></textarea><button class="btn btn-primary" type="submit">Enviar</button></form><form class="close-conversation" method="post" action="{{ url_for('admin_conversa_fechar', conversa_id=conversa.id) }}"><button class="btn btn-secondary app-secondary" type="submit">Fechar conversa</button></form>{% else %}<p class="chat-closed">Esta conversa foi fechada.</p>{% endif %}
+</section><script>document.getElementById('chat-messages').scrollTop=document.getElementById('chat-messages').scrollHeight;</script>
+{% endblock %}

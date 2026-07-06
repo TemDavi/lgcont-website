@@ -36,7 +36,8 @@ STATUS_SERVICO = (
 )
 STATUS_PENDENCIA = ("pendente", "resolvida")
 STATUS_AGENDAMENTO = ("agendado", "realizado", "cancelado")
-TIPOS_ATIVIDADE = ("solicitacao", "cliente", "servico", "pendencia", "sistema")
+TIPOS_ATIVIDADE = ("solicitacao", "cliente", "servico", "pendencia", "mensagem", "sistema")
+STATUS_CONVERSA = ("aberta", "fechada")
 
 
 class Usuario(UserMixin, db.Model):
@@ -52,6 +53,7 @@ class Usuario(UserMixin, db.Model):
     criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="usuario", uselist=False)
+    mensagens = db.relationship("Mensagem", back_populates="usuario")
 
 
 class SolicitacaoAtendimento(db.Model):
@@ -100,6 +102,9 @@ class Cliente(db.Model):
         cascade="all, delete-orphan",
         order_by="Pendencia.criado_em.desc()",
     )
+    conversas = db.relationship(
+        "Conversa", back_populates="cliente", cascade="all, delete-orphan"
+    )
 
 
 class ServicoCliente(db.Model):
@@ -119,6 +124,46 @@ class ServicoCliente(db.Model):
     )
 
     cliente = db.relationship("Cliente", back_populates="servicos")
+    conversas = db.relationship("Conversa", back_populates="servico")
+
+
+class Conversa(db.Model):
+    __tablename__ = "conversas"
+
+    id = db.Column(db.Integer, primary_key=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False, index=True)
+    servico_id = db.Column(db.Integer, db.ForeignKey("servicos_cliente.id"), nullable=True, index=True)
+    status = db.Column(db.String(20), nullable=False, default="aberta", index=True)
+    assunto = db.Column(db.String(150), nullable=False)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    atualizado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    cliente = db.relationship("Cliente", back_populates="conversas")
+    servico = db.relationship("ServicoCliente", back_populates="conversas")
+    mensagens = db.relationship(
+        "Mensagem",
+        back_populates="conversa",
+        cascade="all, delete-orphan",
+        order_by="Mensagem.criado_em.asc()",
+    )
+
+    @property
+    def ultima_mensagem(self):
+        return self.mensagens[-1] if self.mensagens else None
+
+
+class Mensagem(db.Model):
+    __tablename__ = "mensagens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    conversa_id = db.Column(db.Integer, db.ForeignKey("conversas.id"), nullable=False, index=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
+    texto = db.Column(db.Text, nullable=False)
+    lida = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    conversa = db.relationship("Conversa", back_populates="mensagens")
+    usuario = db.relationship("Usuario", back_populates="mensagens")
 
 
 class Pendencia(db.Model):

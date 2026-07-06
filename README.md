@@ -6,7 +6,7 @@ Aplicacao Flask para o site institucional, solicitacoes de atendimento, painel a
 
 - `app.py`: cria a aplicacao Flask, inicializa Flask-Login, registra rotas publicas, administrativas e de cliente.
 - `config.py`: le as variaveis do `.env` e monta a conexao MySQL para o SQLAlchemy.
-- `models.py`: define `SolicitacaoAtendimento`, `Usuario`, `Cliente`, `ServicoCliente` e `Pendencia`.
+- `models.py`: define os dados de usuários, clientes, atendimentos e também `Conversa` e `Mensagem`.
 - `templates/index.html`: pagina institucional publica.
 - `templates/base.html`: layout base das telas de login, admin e cliente.
 - `templates/admin/`: telas do painel administrativo.
@@ -36,6 +36,8 @@ O projeto usa `db.create_all()` no startup. Assim, quando o banco existir e o `.
 - `pendencias`
 - `atividades`
 - `agendamentos`
+- `conversas`
+- `mensagens`
 
 ## Instalar dependencias
 
@@ -125,7 +127,9 @@ Depois de entrar como administrador:
 - `/admin/agenda` e `/admin/agenda/novo`: lista e cria agendamentos.
 - `/admin/busca?q=texto`: pesquisa clientes, solicitacoes e servicos.
 - `/admin/relatorios`: indicadores e graficos do sistema.
-- `/admin/mensagens` e `/cliente/mensagens`: placeholders para o modulo futuro.
+- `/admin/mensagens`: lista todas as conversas e destaca mensagens não lidas.
+- `/admin/mensagens/<id>`: abre o chat, marca mensagens recebidas como lidas e permite responder ou fechar.
+- `/admin/clientes/<id>/conversas/nova`: cria uma conversa geral ou vinculada a um serviço do cliente.
 - `/admin/configuracoes`: informacoes basicas do sistema e usuario.
 - `/admin/clientes/novo`: cadastra um cliente e cria o usuario de login dele.
 - `/admin/clientes/<id>`: mostra dados do cliente, servicos e pendencias.
@@ -184,6 +188,28 @@ Depois do login, ele e redirecionado para `/cliente`, onde pode:
 - ver seus servicos em `/cliente/servicos`;
 - ver suas pendencias em `/cliente/pendencias`;
 - atualizar telefone e endereco em `/cliente/perfil`.
+- iniciar e acompanhar conversas em `/cliente/mensagens`.
+
+## Sistema de mensagens
+
+As tabelas `conversas` e `mensagens` são criadas automaticamente por `db.create_all()` ao reiniciar a aplicação. Uma conversa pertence a um cliente e pode, opcionalmente, apontar para um serviço. O administrador vê todas; o cliente vê apenas as próprias. Ao abrir o chat, as mensagens recebidas pelo usuário conectado são marcadas como lidas.
+
+Para testar como administrador:
+
+1. Entre em `/login` com uma conta admin.
+2. Abra um cliente em `/admin/clientes` e clique em `Nova conversa`.
+3. Escolha o assunto e, opcionalmente, um serviço; envie uma mensagem.
+4. Confira o contador no dashboard e na sidebar depois que o cliente responder.
+5. Use `Fechar conversa` para bloquear novos envios naquele atendimento.
+
+Para testar como cliente:
+
+1. Entre com a conta vinculada ao cliente usado no teste.
+2. Abra `/cliente/mensagens`, leia a conversa e responda.
+3. Clique em `Nova conversa` para iniciar outro assunto.
+4. Confirme que as conversas de outros clientes não podem ser abertas e que os contadores somem após a leitura.
+
+Mensagens vazias são rejeitadas e cada texto aceita até 2.000 caracteres. Os templates usam o escape padrão do Jinja e não aplicam `safe` ao conteúdo enviado.
 
 ## Testar o formulario publico
 
