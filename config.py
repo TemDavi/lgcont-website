@@ -31,6 +31,8 @@ class Config:
     MAIL_USERNAME = os.getenv("MAIL_USERNAME")
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER") or MAIL_USERNAME
+    MAIL_SUPPORT_EMAIL = os.getenv("MAIL_SUPPORT_EMAIL") or MAIL_DEFAULT_SENDER
+    COMPANY_NAME = os.getenv("COMPANY_NAME", "LG Contabilidade")
     MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "true").lower() == "true"
     MAIL_USE_SSL = os.getenv("MAIL_USE_SSL", "false").lower() == "true"
     MAIL_TIMEOUT = int(os.getenv("MAIL_TIMEOUT", "15"))

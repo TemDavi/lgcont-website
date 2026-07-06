@@ -8,6 +8,7 @@ from flask import Flask, current_app, flash, redirect, render_template, request,
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import inspect, or_, text
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
@@ -444,7 +445,8 @@ def create_app():
             flash("Esta solicitação já foi convertida em cliente.", "erro")
             return redirect(url_for("admin_solicitacao_detalhe", id=solicitacao.id))
 
-        if Usuario.query.filter_by(email=solicitacao.email).first():
+        email_solicitacao = solicitacao.email.strip().lower()
+        if Usuario.query.filter_by(email=email_solicitacao).first():
             flash("Já existe um usuário com este e-mail. Revise o cadastro antes de aprovar.", "erro")
             return redirect(url_for("admin_solicitacao_detalhe", id=solicitacao.id))
 
@@ -452,7 +454,7 @@ def create_app():
         senha_inutilizavel = secrets.token_urlsafe(32)
         usuario = Usuario(
             nome=solicitacao.nome,
-            email=solicitacao.email,
+            email=email_solicitacao,
             senha_hash=generate_password_hash(senha_inutilizavel),
             tipo="cliente",
             precisa_definir_senha=True,
@@ -477,9 +479,21 @@ def create_app():
             link = current_app.config["PUBLIC_BASE_URL"] + url_for("ativar_conta", token=token)
             enviar_email_ativacao(usuario.email, usuario.nome, link)
             db.session.commit()
+        except IntegrityError:
+            # Evita erro 500 se duas aprovações do mesmo e-mail ocorrerem ao mesmo tempo.
+            db.session.rollback()
+            current_app.logger.warning(
+                "Aprovação interrompida porque o e-mail já estava cadastrado."
+            )
+            usuario_existente = Usuario.query.filter_by(email=email_solicitacao).first()
+            if usuario_existente and usuario_existente.cliente:
+                flash("Esta solicitação já possui um cliente cadastrado.", "erro")
+                return redirect(url_for("admin_cliente_detalhe", id=usuario_existente.cliente.id))
+            flash("Já existe um usuário com este e-mail. Revise o cadastro antes de aprovar.", "erro")
+            return redirect(url_for("admin_solicitacao_detalhe", id=solicitacao.id))
         except EmailDeliveryError as erro:
             db.session.rollback()
-            current_app.logger.exception("Falha ao enviar ativação para %s", usuario.email)
+            current_app.logger.exception("Falha ao enviar o e-mail de ativação do cliente.")
             flash(f"A solicitação não foi aprovada: {erro}", "erro")
             return redirect(url_for("admin_solicitacao_detalhe", id=solicitacao.id))
 

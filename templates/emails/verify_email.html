@@ -1,0 +1,13 @@
+{% extends "emails/base_email.html" %}
+{% set action_url = link_verificacao %}
+{% set action_text = "Verificar meu e-mail" %}
+
+{% block email_title %}Verifique seu e-mail | {{ nome_empresa }}{% endblock %}
+
+{% block email_content %}
+  <p style="margin:0 0 18px;font-size:20px;line-height:28px;font-weight:bold;color:#101828;">Olá{% if nome %}, {{ nome }}{% endif %}!</p>
+  <p style="margin:0 0 16px;">Agradecemos pelo seu cadastro na {{ nome_empresa }}.</p>
+  <p style="margin:0 0 16px;">Para confirmar seu endereço de e-mail e concluir a criação do seu acesso, clique no botão abaixo.</p>
+  {% if horas_expiracao %}<p style="margin:0 0 16px;padding:12px 14px;border-left:4px solid #0b2a5b;background-color:#f2f6fc;">Este link de verificação expira em <strong>{{ horas_expiracao }} horas</strong>.</p>{% endif %}
+  <p style="margin:20px 0 0;color:#475467;">Se você não solicitou este cadastro, ignore este e-mail.</p>
+{% endblock %}

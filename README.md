@@ -69,10 +69,14 @@ MAIL_PORT=587
 MAIL_USERNAME=seu-email@gmail.com
 MAIL_PASSWORD=sua-senha-de-app
 MAIL_DEFAULT_SENDER=seu-email@gmail.com
+MAIL_SUPPORT_EMAIL=contato@seudominio.com
+COMPANY_NAME=LG Contabilidade
 MAIL_USE_TLS=true
 MAIL_USE_SSL=false
 ACTIVATION_TOKEN_HOURS=24
 ```
+
+Os e-mails automáticos usam templates HTML em `templates/emails/`, acompanhados por uma versão em texto simples. `MAIL_SUPPORT_EMAIL` aparece no rodapé e `COMPANY_NAME` permite reutilizar o layout com o nome configurado da empresa.
 
 Para Gmail, use uma **senha de app** em `MAIL_PASSWORD`, nunca a senha normal da conta.
 Em producao, `PUBLIC_BASE_URL` deve ser o endereco HTTPS real do site.
