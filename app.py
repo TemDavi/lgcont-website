@@ -7,8 +7,8 @@ import click
 from flask import Flask, current_app, flash, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
-from sqlalchemy import inspect, or_, text
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, inspect, or_, text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
@@ -626,6 +626,58 @@ def create_app():
             status_servico=STATUS_SERVICO,
             status_pendencia=STATUS_PENDENCIA,
         )
+
+    @app.get("/admin/clientes/<int:id>/remover")
+    @admin_required
+    def admin_cliente_confirmar_remocao(id):
+        cliente = Cliente.query.get_or_404(id)
+        return render_template("admin/cliente_remover.html", cliente=cliente)
+
+    @app.post("/admin/clientes/<int:id>/remover")
+    @admin_required
+    def admin_cliente_remover(id):
+        cliente = Cliente.query.get_or_404(id)
+        usuario = cliente.usuario
+        nome_cliente = usuario.nome
+        email_cliente = usuario.email.strip().lower()
+
+        try:
+            conversa_ids = [
+                conversa_id
+                for (conversa_id,) in db.session.query(Conversa.id)
+                .filter(Conversa.cliente_id == cliente.id)
+                .all()
+            ]
+
+            # A ordem evita conflitos com as chaves estrangeiras do MySQL.
+            filtro_mensagens = Mensagem.usuario_id == usuario.id
+            if conversa_ids:
+                filtro_mensagens = or_(
+                    filtro_mensagens, Mensagem.conversa_id.in_(conversa_ids)
+                )
+            Mensagem.query.filter(filtro_mensagens).delete(synchronize_session=False)
+            Conversa.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
+            Agendamento.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
+            Atividade.query.filter(
+                or_(Atividade.cliente_id == cliente.id, Atividade.usuario_id == usuario.id)
+            ).delete(synchronize_session=False)
+            Pendencia.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
+            ServicoCliente.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
+            SolicitacaoAtendimento.query.filter(
+                func.lower(func.trim(SolicitacaoAtendimento.email)) == email_cliente
+            ).delete(synchronize_session=False)
+
+            db.session.delete(cliente)
+            db.session.delete(usuario)
+            db.session.commit()
+        except SQLAlchemyError:
+            db.session.rollback()
+            current_app.logger.exception("Falha ao remover um cliente e seus registros.")
+            flash("Não foi possível remover o cliente. Nenhum dado foi apagado.", "erro")
+            return redirect(url_for("admin_cliente_detalhe", id=id))
+
+        flash(f"Cliente {nome_cliente} e todos os seus registros foram removidos.", "sucesso")
+        return redirect(url_for("admin_clientes"))
 
     @app.post("/admin/clientes/<int:id>/servicos/novo")
     @admin_required

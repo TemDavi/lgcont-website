@@ -87,4 +87,12 @@
     <p>Nenhuma pendencia cadastrada.</p>
   {% endfor %}
 </section>
+
+<section class="danger-zone">
+  <div>
+    <h2>Remover cliente</h2>
+    <p>Apaga permanentemente o cliente, o usuário de acesso e todos os registros relacionados.</p>
+  </div>
+  <a class="btn btn-danger" href="{{ url_for('admin_cliente_confirmar_remocao', id=cliente.id) }}">Remover cliente</a>
+</section>
 {% endblock %}

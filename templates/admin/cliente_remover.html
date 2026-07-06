@@ -1,0 +1,24 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Confirmar remoção | Admin{% endblock %}
+
+{% block content %}
+<section class="danger-confirmation">
+  <span class="eyebrow">Ação permanente</span>
+  <h1>Remover {{ cliente.usuario.nome }}?</h1>
+  <p>Esta ação apagará definitivamente:</p>
+  <ul>
+    <li>o cadastro e o acesso de <strong>{{ cliente.usuario.email }}</strong>;</li>
+    <li>serviços, pendências e agendamentos;</li>
+    <li>conversas e mensagens;</li>
+    <li>atividades e solicitações vinculadas ao e-mail.</li>
+  </ul>
+  <p><strong>Esta operação não pode ser desfeita.</strong></p>
+  <div class="panel-actions">
+    <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_cliente_detalhe', id=cliente.id) }}">Cancelar</a>
+    <form method="post" action="{{ url_for('admin_cliente_remover', id=cliente.id) }}" onsubmit="this.querySelector('button').disabled = true;">
+      <button class="btn btn-danger" type="submit">Sim, apagar permanentemente</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
