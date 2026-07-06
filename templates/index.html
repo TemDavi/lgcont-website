@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Luciano Garcês Contabilidade e Perícias</title>
   <meta name="description" content="Soluções contábeis, fiscais, trabalhistas e perícias para empresas, MEIs e profissionais autônomos.">
+  <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='assets/icone.jpeg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +16,7 @@
   <header class="site-header" id="topo">
     <nav class="nav container" aria-label="Menu principal">
       <a class="brand" href="#inicio" aria-label="Ir para o início">
-        <span class="brand-mark">LG</span>
+        <img class="brand-icon" src="{{ url_for('static', filename='assets/icone.jpeg') }}" alt="">
         <span>
           <strong>Luciano Garcês</strong>
           <small>Contabilidade e Perícias</small>
@@ -175,9 +176,12 @@
 
   <footer class="footer">
     <div class="container footer-grid">
-      <div>
+      <div class="footer-brand">
+        <img class="footer-logo" src="{{ url_for('static', filename='assets/logo.jpeg') }}" alt="Luciano Garcês Contabilidade e Perícias">
+        <div>
         <strong>Luciano Garcês Contabilidade e Perícias</strong>
         <p>Contabilidade, perícias, assessoria fiscal, trabalhista e empresarial.</p>
+        </div>
       </div>
       <div>
         <span>Serviços principais</span>
