@@ -20,7 +20,8 @@ class Config:
     MYSQL_DATABASE_URI = (
         "mysql+pymysql://"
         f"{quote_plus(MYSQL_USER)}:{quote_plus(MYSQL_PASSWORD)}"
-        f"@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}?charset=utf8mb4"
+        f"@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+        "?charset=utf8mb4&ssl_check_hostname=false"
     )
     SQLALCHEMY_DATABASE_URI = DATABASE_URL or MYSQL_DATABASE_URI
     SQLALCHEMY_TRACK_MODIFICATIONS = False
