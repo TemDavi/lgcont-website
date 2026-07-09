@@ -1,3 +1,4 @@
+![alt text](static/assets/WebSite.png)
 # Luciano Garces Contabilidade e Pericias
 
 Meu primeiro projeto Web.
