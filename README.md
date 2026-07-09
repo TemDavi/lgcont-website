@@ -1,4 +1,6 @@
-![alt text](static/assets/WebSite.png)
+<p align="center">
+  <img src="assets/WebSite.png" alt="LG Contabilidade" width="100%">
+</p>
 # Luciano Garces Contabilidade e Pericias
 
 Meu primeiro projeto Web.
