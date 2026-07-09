@@ -3,6 +3,8 @@ from getpass import getpass
 import secrets
 from datetime import date, datetime
 
+import os
+
 import click
 from flask import Flask, current_app, flash, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
@@ -1068,4 +1070,8 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "5000")),
+        debug=False,
+    )
