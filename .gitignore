@@ -6,3 +6,4 @@ instance/
 static/assets/*
 
 !static/assets/.gitkeep
+!static/assets/home.png
