@@ -3,7 +3,7 @@
 Meu primeiro projeto Web.
 Website desenvolvido para o escritório de contabilidade "Luciano Garcês Contabilidade e Pericias"
 
-![alt text](assets/home.png)
+![alt text](static/assets/home.png)
 
 ## 📖 Sobre
 
