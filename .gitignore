@@ -3,3 +3,6 @@ __pycache__/
 *.py[cod]
 .venv/
 instance/
+static/assets/*
+
+!static/assets/.gitkeep
