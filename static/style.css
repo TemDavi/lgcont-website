@@ -1,8 +1,8 @@
 /* Variáveis CSS: ajudam a manter cores e medidas consistentes no projeto. */
 :root {
-  --blue-950: #0b1644;
-  --blue-900: #111f5d;
-  --blue-800: #17306f;
+  --blue-950: #08124d;
+  --blue-900: #11227e;
+  --blue-800: #1d36a5;
   --orange: #f28c28;
   --orange-dark: #d97614;
   --white: #ffffff;
@@ -10,7 +10,7 @@
   --gray-200: #dfe6f0;
   --gray-600: #667085;
   --gray-900: #172033;
-  --shadow: 0 22px 55px rgba(11, 22, 68, 0.16);
+  --shadow: 0 22px 55px rgba(17, 34, 126, 0.16);
   --radius: 8px;
   --container: 1120px;
 }
@@ -50,7 +50,7 @@ a {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(11, 22, 68, 0.94);
+  background: rgba(17, 34, 126, 0.94);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -82,11 +82,9 @@ a {
 }
 
 .brand-icon {
-  width: 46px;
-  height: 46px;
-  border: 2px solid rgba(255, 255, 255, 0.65);
-  border-radius: 50%;
-  object-fit: cover;
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
 }
 
 .brand strong,
@@ -207,7 +205,7 @@ a {
   padding: 86px 0 70px;
   color: var(--white);
   background:
-    linear-gradient(135deg, rgba(11, 22, 68, 0.96), rgba(17, 31, 93, 0.92)),
+    linear-gradient(135deg, rgba(8, 18, 77, 0.96), rgba(17, 34, 126, 0.92)),
     radial-gradient(circle at 84% 18%, rgba(242, 140, 40, 0.28), transparent 28%);
   overflow: hidden;
 }
@@ -295,7 +293,7 @@ a {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(11, 22, 68, 0.08), rgba(11, 22, 68, 0.54));
+  background: linear-gradient(180deg, rgba(17, 34, 126, 0.08), rgba(17, 34, 126, 0.54));
   z-index: 1;
 }
 
@@ -499,7 +497,7 @@ a {
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
   background: var(--white);
-  box-shadow: 0 8px 22px rgba(11, 22, 68, 0.06);
+  box-shadow: 0 8px 22px rgba(17, 34, 126, 0.06);
 }
 
 .faq-item summary {
@@ -546,7 +544,7 @@ a {
 .footer {
   padding: 44px 0 24px;
   color: rgba(255, 255, 255, 0.74);
-  background: #081037;
+  background: #08124d;
 }
 
 .footer-grid {
@@ -832,7 +830,7 @@ a {
   border-radius: var(--radius);
   color: inherit;
   background: var(--white);
-  box-shadow: 0 4px 14px rgba(11, 22, 68, 0.04);
+  box-shadow: 0 4px 14px rgba(17, 34, 126, 0.04);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -850,7 +848,7 @@ a {
 .summary-card:hover,
 .summary-card:focus-visible {
   border-color: var(--orange);
-  box-shadow: 0 12px 26px rgba(11, 22, 68, 0.12);
+  box-shadow: 0 12px 26px rgba(17, 34, 126, 0.12);
   transform: translateY(-3px);
 }
 
@@ -866,7 +864,7 @@ a {
 .summary-card-static:hover,
 .summary-card-static:focus-visible {
   border-color: var(--gray-200);
-  box-shadow: 0 4px 14px rgba(11, 22, 68, 0.04);
+  box-shadow: 0 4px 14px rgba(17, 34, 126, 0.04);
   transform: none;
 }
 
