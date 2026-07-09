@@ -6,20 +6,20 @@
 <section class="panel-heading">
   <span class="eyebrow">Cliente</span>
   <h1>Olá, {{ cliente.usuario.nome }}</h1>
-  <p>Acompanhe seus servicos, pendencias e dados cadastrais.</p>
+  <p>Acompanhe seus serviços, pendências e dados cadastrais.</p>
 </section>
 <div class="dashboard-grid client-dashboard-grid"><section class="crm-card"><h2>Últimos serviços atualizados</h2>{% for item in ultimos_servicos %}<a href="{{ url_for('cliente_servicos') }}"><strong>{{ item.titulo }}</strong><span>{{ item.status }}</span><small>{{ item.atualizado_em.strftime('%d/%m/%Y') }}</small></a>{% else %}<p>Nenhum serviço.</p>{% endfor %}</section><section class="crm-card"><h2>Próximos agendamentos</h2>{% for item in agendamentos %}<div class="activity-item"><strong>{{ item.data.strftime('%d/%m') }} às {{ item.hora.strftime('%H:%M') }}</strong><span>{{ item.titulo }}</span></div>{% else %}<p>Nenhum agendamento futuro.</p>{% endfor %}</section></div>
 
 <section class="summary-grid">
   <a class="summary-card" href="{{ url_for('cliente_servicos') }}"><span>Servicos</span><strong>{{ resumo.servicos }}</strong></a>
-  <a class="summary-card" href="{{ url_for('cliente_pendencias', status='pendente') }}"><span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong></a>
-  <a class="summary-card" href="{{ url_for('cliente_servicos', status='finalizado') }}"><span>Servicos finalizados</span><strong>{{ resumo.finalizados }}</strong></a>
+  <a class="summary-card" href="{{ url_for('cliente_pendencias', status='pendente') }}"><span>Pendências abertas</span><strong>{{ resumo.pendencias }}</strong></a>
+  <a class="summary-card" href="{{ url_for('cliente_servicos', status='finalizado') }}"><span>Serviços finalizados</span><strong>{{ resumo.finalizados }}</strong></a>
   <a class="summary-card" href="{{ url_for('cliente_mensagens') }}"><span>Mensagens não lidas</span><strong>{{ resumo.mensagens }}</strong></a>
   <article class="summary-card summary-card-static"><span>Tipo</span><strong>{{ cliente.tipo_cliente }}</strong></article>
 </section>
 
 <section class="panel-actions">
-  <a class="btn btn-primary" href="{{ url_for('cliente_servicos') }}">Ver servicos</a>
+  <a class="btn btn-primary" href="{{ url_for('cliente_servicos') }}">Ver serviços</a>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('cliente_perfil') }}">Atualizar perfil</a>
 </section>
 {% endblock %}

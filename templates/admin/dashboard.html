@@ -6,7 +6,7 @@
 <section class="panel-heading">
   <span class="eyebrow">Administrador</span>
   <h1>Painel administrativo</h1>
-  <p>Acompanhe solicitações, clientes, servicos em andamento e pendencias.</p>
+  <p>Acompanhe solicitações, clientes, serviços em andamento e pendências.</p>
 </section>
 
 <section class="summary-grid crm-summary-grid">
@@ -17,10 +17,10 @@
     <span>Clientes</span><strong>{{ resumo.clientes }}</strong>
   </a>
   <a class="summary-card" href="{{ url_for('admin_servicos') }}">
-    <span>Servicos em andamento</span><strong>{{ resumo.servicos }}</strong>
+    <span>Serviços em andamento</span><strong>{{ resumo.servicos }}</strong>
   </a>
   <a class="summary-card" href="{{ url_for('admin_pendencias') }}">
-    <span>Pendencias abertas</span><strong>{{ resumo.pendencias }}</strong>
+    <span>Pendências abertas</span><strong>{{ resumo.pendencias }}</strong>
   </a>
   <a class="summary-card" href="{{ url_for('admin_servicos', status='finalizado') }}"><span>Serviços finalizados</span><strong>{{ resumo.finalizados }}</strong></a>
   <a class="summary-card" href="{{ url_for('admin_clientes') }}"><span>Novos clientes do mês</span><strong>{{ resumo.novos_clientes }}</strong></a>

@@ -1,13 +1,13 @@
 {% extends "admin/base_admin.html" %}
 
-{% block title %}Servicos em andamento | Admin{% endblock %}
+{% block title %}Serviços em andamento | Admin{% endblock %}
 
 {% block content %}
 <section class="panel-heading panel-heading-row">
   <div>
     <span class="eyebrow">Administrador</span>
-    <h1>Servicos em andamento</h1>
-    <p>Atualize os servicos ativos de todos os clientes em um unico lugar.</p>
+    <h1>Serviços em andamento</h1>
+    <p>Atualize os serviços ativos de todos os clientes em um unico lugar.</p>
   </div>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
 </section>
@@ -16,11 +16,11 @@
 <section class="table-panel">
   <table>
     <thead>
-      <tr><th>Cliente</th><th>Servico</th><th>Status</th><th>Atualizado em</th><th>Acao</th></tr>
+      <tr><th>Cliente</th><th>Serviço</th><th>Status</th><th>Atualizado em</th><th>Ação</th></tr>
     </thead>
     <tbody>
       {% for servico in servicos %}
-        <tr class="clickable-row" data-href="{{ url_for('admin_cliente_detalhe', id=servico.cliente_id) }}" tabindex="0" role="link" aria-label="Gerenciar servico de {{ servico.cliente.usuario.nome }}">
+        <tr class="clickable-row" data-href="{{ url_for('admin_cliente_detalhe', id=servico.cliente_id) }}" tabindex="0" role="link" aria-label="Gerenciar serviço de {{ servico.cliente.usuario.nome }}">
           <td>{{ servico.cliente.usuario.nome }}</td>
           <td><strong>{{ servico.titulo }}</strong><br><small>{{ servico.descricao or "Sem descricao." }}</small></td>
           <td><span class="status-pill">{{ servico.status }}</span></td>
@@ -38,7 +38,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5">Nenhum servico em andamento.</td></tr>
+        <tr><td colspan="5">Nenhum serviço em andamento.</td></tr>
       {% endfor %}
     </tbody>
   </table>

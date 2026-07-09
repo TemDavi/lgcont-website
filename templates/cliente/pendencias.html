@@ -6,8 +6,8 @@
 <section class="panel-heading panel-heading-row">
   <div>
     <span class="eyebrow">Cliente</span>
-    <h1>{% if status_atual == "pendente" %}Pendencias abertas{% else %}Minhas pendencias{% endif %}</h1>
-    <p>Veja documentos, informacoes ou acoes solicitadas pelo escritorio.</p>
+    <h1>{% if status_atual == "pendente" %}Pendências abertas{% else %}Minhas pendências{% endif %}</h1>
+    <p>Veja documentos, informações ou ações solicitadas pelo escritório.</p>
   </div>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('cliente_dashboard') }}">Voltar ao painel</a>
 </section>
@@ -23,7 +23,7 @@
       <span class="status-pill">{{ pendencia.status }}</span>
     </article>
   {% else %}
-    <p>Nenhuma pendencia cadastrada para sua conta.</p>
+    <p>Nenhuma pendência cadastrada para sua conta.</p>
   {% endfor %}
 </section>
 {% endblock %}

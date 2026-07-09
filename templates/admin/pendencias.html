@@ -1,13 +1,13 @@
 {% extends "admin/base_admin.html" %}
 
-{% block title %}Pendencias abertas | Admin{% endblock %}
+{% block title %}Pendências abertas | Admin{% endblock %}
 
 {% block content %}
 <section class="panel-heading panel-heading-row">
   <div>
     <span class="eyebrow">Administrador</span>
-    <h1>Pendencias abertas</h1>
-    <p>Consulte e resolva pendencias de todos os clientes.</p>
+    <h1>Pendências abertas</h1>
+    <p>Consulte e resolva pendências de todos os clientes.</p>
   </div>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_dashboard') }}">Voltar ao painel</a>
 </section>
@@ -16,7 +16,7 @@
 <section class="table-panel">
   <table>
     <thead>
-      <tr><th>Cliente</th><th>Pendencia</th><th>Status</th><th>Criada em</th><th>Acao</th></tr>
+      <tr><th>Cliente</th><th>Pendência</th><th>Status</th><th>Criada em</th><th>Ação</th></tr>
     </thead>
     <tbody>
       {% for pendencia in pendencias %}
@@ -38,7 +38,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5">Nenhuma pendencia aberta.</td></tr>
+        <tr><td colspan="5">Nenhuma pendência aberta.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -17,14 +17,14 @@
     <h2>Dados principais</h2>
     <p><strong>Telefone:</strong> {{ cliente.telefone or "-" }}</p>
     <p><strong>CPF/CNPJ:</strong> {{ cliente.cpf_cnpj or "-" }}</p>
-    <p><strong>Endereco:</strong> {{ cliente.endereco or "-" }}</p>
+    <p><strong>Endereço:</strong> {{ cliente.endereco or "-" }}</p>
     {% if cliente.usuario.precisa_definir_senha and cliente.usuario.senha_temporaria %}
       <p><strong>Senha temporaria:</strong> {{ cliente.usuario.senha_temporaria }}</p>
     {% endif %}
   </article>
 
   <article class="info-card">
-    <h2>Novo servico</h2>
+    <h2>Novo serviço</h2>
     <form class="compact-form" method="post" action="{{ url_for('admin_servico_novo', id=cliente.id) }}">
       <input type="text" name="titulo" placeholder="Titulo do servico" required>
       <textarea name="descricao" rows="3" placeholder="Descricao"></textarea>
@@ -33,7 +33,7 @@
   </article>
 
   <article class="info-card">
-    <h2>Nova pendencia</h2>
+    <h2>Nova pendência</h2>
     <form class="compact-form" method="post" action="{{ url_for('admin_pendencia_nova', id=cliente.id) }}">
       <input type="text" name="titulo" placeholder="Titulo da pendencia" required>
       <textarea name="descricao" rows="3" placeholder="Descricao"></textarea>
@@ -43,12 +43,12 @@
 </section>
 
 <section class="list-panel">
-  <h2>Servicos</h2>
+  <h2>Serviços</h2>
   {% for servico in cliente.servicos %}
     <article class="list-item">
       <div>
         <h3>{{ servico.titulo }}</h3>
-        <p>{{ servico.descricao or "Sem descricao." }}</p>
+        <p>{{ servico.descricao or "Sem descrição." }}</p>
         <small>Atualizado em {{ servico.atualizado_em.strftime("%d/%m/%Y %H:%M") }}</small>
       </div>
       <form method="post" action="{{ url_for('admin_servico_status', id=servico.id) }}">
@@ -61,7 +61,7 @@
       </form>
     </article>
   {% else %}
-    <p>Nenhum servico cadastrado.</p>
+    <p>Nenhum serviço cadastrado.</p>
   {% endfor %}
 </section>
 
@@ -84,7 +84,7 @@
       </form>
     </article>
   {% else %}
-    <p>Nenhuma pendencia cadastrada.</p>
+    <p>Nenhuma pendência cadastrada.</p>
   {% endfor %}
 </section>
 

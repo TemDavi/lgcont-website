@@ -6,8 +6,8 @@
 <section class="panel-heading panel-heading-row">
   <div>
     <span class="eyebrow">Cliente</span>
-    <h1>{% if status_atual == "finalizado" %}Servicos finalizados{% else %}Meus servicos{% endif %}</h1>
-    <p>Consulte o andamento dos servicos cadastrados pelo escritorio.</p>
+    <h1>{% if status_atual == "finalizado" %}Servicos finalizados{% else %}Meus serviços{% endif %}</h1>
+    <p>Consulte o andamento dos serviços cadastrados pelo escritorio.</p>
   </div>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('cliente_dashboard') }}">Voltar ao painel</a>
 </section>
@@ -17,13 +17,13 @@
     <article class="list-item">
       <div>
         <h3>{{ servico.titulo }}</h3>
-        <p>{{ servico.descricao or "Sem descricao." }}</p>
+        <p>{{ servico.descricao or "Sem descrição." }}</p>
         <small>Criado em {{ servico.criado_em.strftime("%d/%m/%Y %H:%M") }}</small>
       </div>
       <span class="status-pill">{{ servico.status }}</span>
     </article>
   {% else %}
-    <p>Nenhum servico cadastrado para sua conta ainda.</p>
+    <p>Nenhum serviço cadastrado para sua conta ainda.</p>
   {% endfor %}
 </section>
 {% endblock %}

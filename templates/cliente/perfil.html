@@ -7,7 +7,7 @@
   <div>
     <span class="eyebrow">Cliente</span>
     <h1>Meu perfil</h1>
-    <p>Confira seus dados principais e atualize telefone e endereco.</p>
+    <p>Confira seus dados principais e atualize telefone e endereço.</p>
   </div>
   <a class="btn btn-secondary app-secondary" href="{{ url_for('cliente_dashboard') }}">Voltar ao painel</a>
 </section>
@@ -29,7 +29,7 @@
         <input type="tel" name="telefone" value="{{ cliente.telefone or '' }}">
       </label>
       <label>
-        Endereco
+        Endereço
         <input type="text" name="endereco" value="{{ cliente.endereco or '' }}">
       </label>
       <button class="btn btn-primary" type="submit">Salvar alteracoes</button>
