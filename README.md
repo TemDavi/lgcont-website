@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/WebSite.png" alt="LG Contabilidade" width="100%">
+  <img src="static/assets/WebSite.png" alt="LG Contabilidade" width="100%">
 </p>
 # Luciano Garces Contabilidade e Pericias
 
