@@ -3,5 +3,23 @@
 {% block content %}
 <section class="chat-container"><header class="chat-header"><div><a href="{{ url_for('cliente_mensagens') }}">← Conversas</a><h1>{{ conversa.assunto }}</h1>{% if conversa.servico %}<p>{{ conversa.servico.titulo }}</p>{% endif %}</div><span class="status-pill">{{ conversa.status }}</span></header>
 <div class="chat-messages" id="chat-messages">{% for mensagem in conversa.mensagens %}<article class="message-bubble {{ 'message-own' if mensagem.usuario_id == current_user.id else 'message-other' }}"><strong>{{ mensagem.usuario.nome }} · {{ 'Administrador' if mensagem.usuario.tipo == 'admin' else 'Cliente' }}</strong><p>{{ mensagem.texto }}</p><small class="message-meta">{{ mensagem.criado_em.strftime('%d/%m/%Y %H:%M') }}</small></article>{% else %}<p class="chat-empty">Ainda não há mensagens nesta conversa.</p>{% endfor %}</div>
-{% if conversa.status == 'aberta' %}<form class="chat-input" method="post" action="{{ url_for('cliente_conversa_enviar', conversa_id=conversa.id) }}"><textarea name="texto" maxlength="2000" required placeholder="Digite sua mensagem..."></textarea><button class="btn btn-primary" type="submit">Enviar</button></form>{% else %}<p class="chat-closed">Esta conversa foi fechada pelo administrador.</p>{% endif %}</section><script>document.getElementById('chat-messages').scrollTop=document.getElementById('chat-messages').scrollHeight;</script>
+{% if conversa.status == 'aberta' %}<form class="chat-input" method="post" action="{{ url_for('cliente_conversa_enviar', conversa_id=conversa.id) }}"><textarea name="texto" maxlength="2000" required placeholder="Digite sua mensagem..."></textarea><button class="btn btn-primary" type="submit">Enviar</button></form>{% else %}<p class="chat-closed">Esta conversa foi fechada pelo administrador.</p>{% endif %}</section>
+<script>
+  const chatMessages = document.getElementById("chat-messages");
+  if (chatMessages) {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  const chatForm = document.querySelector(".chat-input");
+  const chatTextarea = chatForm?.querySelector("textarea");
+  chatTextarea?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    if (chatTextarea.value.trim()) {
+      chatForm.requestSubmit();
+    }
+  });
+</script>
 {% endblock %}

@@ -1,1 +1,285 @@
-{% extends "admin/base_admin.html" %}{% block title %}Configurações | Admin{% endblock %}{% block content %}<section class="panel-heading"><span class="eyebrow">Sistema</span><h1>Configurações</h1></section><section class="crm-card"><p><strong>Usuário:</strong> {{ current_user.nome }}</p><p><strong>E-mail:</strong> {{ current_user.email }}</p><p><strong>Perfil:</strong> Administrador</p><p><strong>Sistema:</strong> LG Contabilidade CRM</p></section>{% endblock %}
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Configurações | Admin{% endblock %}
+
+{% set labels = {
+  "conta": "Minha conta",
+  "empresa": "Dados da empresa",
+  "atendimento": "Atendimento",
+  "personalizacao": "Personalização",
+  "seguranca": "Segurança e privacidade",
+  "backup": "Backup e manutenção"
+} %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Sistema</span>
+  <h1>Configurações</h1>
+</section>
+
+<section class="settings-layout">
+  <nav class="settings-nav" aria-label="Seções de configurações">
+    {% for item in secoes %}
+      <a class="{{ 'active' if secao == item else '' }}" href="{{ url_for('admin_configuracoes_secao', secao=item) }}">{{ labels[item] }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="settings-content">
+    {% if secao == "conta" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Minha conta</h2>
+          <p>Atualize seus dados administrativos sem afetar outros administradores.</p>
+        </div>
+        <div class="settings-grid">
+          <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="acao" value="perfil">
+            <label>Nome de exibição<input name="nome" value="{{ current_user.nome }}" required></label>
+            <label>E-mail<input type="email" name="email" value="{{ current_user.email }}" required></label>
+            <label>Telefone<input type="tel" name="telefone" value="{{ current_user.telefone or '' }}"></label>
+            <label>Cargo ou perfil<input name="cargo" value="{{ current_user.cargo or '' }}" placeholder="Administrador"></label>
+            <button class="btn btn-primary" type="submit">Salvar perfil</button>
+          </form>
+
+          <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="acao" value="senha">
+            <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
+            <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
+            <label>Confirmar nova senha<input type="password" name="confirmar_senha" minlength="8" autocomplete="new-password" required></label>
+            <button class="btn btn-primary" type="submit">Alterar senha</button>
+          </form>
+
+          <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="acao" value="tema">
+            <label>Tema
+              <select name="tema">
+                <option value="claro" {% if current_user.tema_preferido != 'escuro' %}selected{% endif %}>Claro</option>
+                <option value="escuro" {% if current_user.tema_preferido == 'escuro' %}selected{% endif %}>Escuro</option>
+              </select>
+            </label>
+            <button class="btn btn-primary" type="submit">Salvar tema</button>
+          </form>
+        </div>
+        <div class="settings-meta">
+          <span>Criado em {{ current_user.criado_em.strftime("%d/%m/%Y %H:%M") }}</span>
+          <span>Último acesso {{ current_user.ultimo_acesso.strftime("%d/%m/%Y %H:%M") if current_user.ultimo_acesso else "ainda não registrado" }}</span>
+        </div>
+      </section>
+    {% elif secao == "empresa" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Dados da empresa</h2>
+          <p>Essas informações ficam centralizadas para uso futuro em e-mails, documentos e cabeçalhos do CRM.</p>
+        </div>
+        <form class="settings-card settings-form-wide" method="post" enctype="multipart/form-data" action="{{ url_for('admin_configuracoes_empresa_salvar') }}">
+          <label>Nome da empresa<input name="nome_empresa" value="{{ empresa.nome_empresa or '' }}" required></label>
+          <label>Razão social<input name="razao_social" value="{{ empresa.razao_social or '' }}"></label>
+          <label>Nome fantasia<input name="nome_fantasia" value="{{ empresa.nome_fantasia or '' }}"></label>
+          <label>CNPJ<input name="cnpj" value="{{ empresa.cnpj or '' }}" placeholder="00.000.000/0000-00"></label>
+          <label>Telefone<input name="telefone" value="{{ empresa.telefone or '' }}"></label>
+          <label>WhatsApp<input name="whatsapp" value="{{ empresa.whatsapp or '' }}"></label>
+          <label>E-mail comercial<input type="email" name="email_comercial" value="{{ empresa.email_comercial or '' }}"></label>
+          <label>Endereço<input name="endereco" value="{{ empresa.endereco or '' }}"></label>
+          <label>Número<input name="numero" value="{{ empresa.numero or '' }}"></label>
+          <label>Complemento<input name="complemento" value="{{ empresa.complemento or '' }}"></label>
+          <label>Bairro<input name="bairro" value="{{ empresa.bairro or '' }}"></label>
+          <label>Cidade<input name="cidade" value="{{ empresa.cidade or '' }}"></label>
+          <label>Estado<input name="estado" maxlength="2" value="{{ empresa.estado or '' }}"></label>
+          <label>CEP<input name="cep" value="{{ empresa.cep or '' }}" placeholder="00000-000"></label>
+          <label>Horário de atendimento<input name="horario_atendimento" value="{{ empresa.horario_atendimento or '' }}"></label>
+          <label>Site<input name="site" value="{{ empresa.site or '' }}"></label>
+          <label>Instagram<input name="instagram" value="{{ empresa.instagram or '' }}"></label>
+          <label>Logo da empresa<input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,image/x-icon"></label>
+          <div class="settings-preview">
+            {% if empresa.logo_path %}
+              <img src="{{ url_for('static', filename=empresa.logo_path) }}" alt="Logo atual">
+            {% else %}
+              <span>Sem logo cadastrada</span>
+            {% endif %}
+          </div>
+          <button class="btn btn-primary full-field" type="submit">Salvar dados da empresa</button>
+        </form>
+      </section>
+    {% elif secao == "atendimento" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Atendimento</h2>
+          <p>Configure o funcionamento das solicitações sem alterar o histórico já existente.</p>
+        </div>
+        <form class="settings-reset" method="post" action="{{ url_for('admin_configuracoes_atendimento_padrao') }}">
+          <button class="btn app-secondary" type="submit">Retornar ao padrão</button>
+        </form>
+        <form class="settings-card settings-form-wide" method="post" action="{{ url_for('admin_configuracoes_atendimento_salvar') }}">
+          <label>Prioridade padrão<select name="prioridade_padrao">{% for item in prioridades %}<option value="{{ item }}" {% if atendimento.prioridade_padrao == item %}selected{% endif %}>{{ item|title }}</option>{% endfor %}</select></label>
+          <label>Prazo de resposta em horas<input type="number" min="1" name="prazo_resposta_horas" value="{{ atendimento.prazo_resposta_horas }}"></label>
+          <label>Permitir anexos<select name="permitir_anexos"><option value="">Não</option><option value="on" {% if atendimento.permitir_anexos %}selected{% endif %}>Sim</option></select></label>
+          <label>Tamanho máximo dos anexos em MB<input type="number" min="1" name="tamanho_maximo_anexo_mb" value="{{ atendimento.tamanho_maximo_anexo_mb }}"></label>
+          <label>Formatos permitidos<input name="formatos_permitidos" value="{{ atendimento.formatos_permitidos or '' }}" placeholder="pdf,jpg,png"></label>
+          <label>WhatsApp para redirecionamento<input name="whatsapp_redirecionamento" value="{{ atendimento.whatsapp_redirecionamento or '' }}"></label>
+          <label class="full-field">Mensagem automática ao abrir<textarea name="mensagem_abertura">{{ atendimento.mensagem_abertura or '' }}</textarea></label>
+          <label class="full-field">Mensagem automática ao concluir<textarea name="mensagem_conclusao">{{ atendimento.mensagem_conclusao or '' }}</textarea></label>
+          <button class="btn btn-primary full-field" type="submit">Salvar atendimento</button>
+        </form>
+
+        <section class="settings-card">
+          <h3>Categorias</h3>
+          <form class="settings-inline-form" method="post" action="{{ url_for('admin_categoria_atendimento_salvar') }}">
+            <input name="nome" placeholder="Nova categoria">
+            <button class="btn btn-primary" type="submit">Adicionar</button>
+          </form>
+          <div class="settings-table">
+            {% for categoria in categorias %}
+              <div class="settings-table-row">
+                <span><strong>{{ categoria.nome }}</strong><small>{{ "Ativa" if categoria.ativa else "Inativa" }}</small></span>
+                <form method="post" action="{{ url_for('admin_categoria_atendimento_alternar', id=categoria.id) }}"><button class="btn btn-small app-secondary" type="submit">{{ "Desativar" if categoria.ativa else "Ativar" }}</button></form>
+                <form method="post" action="{{ url_for('admin_categoria_atendimento_excluir', id=categoria.id) }}"><input name="confirmacao" placeholder="EXCLUIR"><button class="btn btn-small app-secondary" type="submit">Excluir</button></form>
+              </div>
+            {% else %}
+              <p>Nenhuma categoria cadastrada.</p>
+            {% endfor %}
+          </div>
+        </section>
+      </section>
+    {% elif secao == "personalizacao" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Personalização</h2>
+          <p>Defina o nome do sistema e o conteúdo exibido na página principal.</p>
+        </div>
+        <form class="settings-card settings-form-wide home-editor" method="post" action="{{ url_for('admin_configuracoes_personalizacao_salvar') }}">
+          <label>Nome exibido do sistema<input name="nome_sistema" value="{{ sistema.nome_sistema }}" required></label>
+          <div class="settings-subtitle full-field"><h3>Topo da página</h3></div>
+          <label>Chamada pequena<input name="hero_eyebrow" value="{{ home.hero_eyebrow }}"></label>
+          <label>Título principal<input name="hero_titulo" value="{{ home.hero_titulo }}"></label>
+          <label class="full-field">Texto principal<textarea name="hero_texto">{{ home.hero_texto }}</textarea></label>
+          <label>Rótulo do card lateral<input name="hero_card_rotulo" value="{{ home.hero_card_rotulo or '' }}"></label>
+          <label>Valor do card lateral<input name="hero_card_valor" value="{{ home.hero_card_valor or '' }}"></label>
+          <label class="full-field">Destaques do topo<textarea name="hero_stats" placeholder="12+ | serviços contábeis">{{ home_textareas.hero_stats }}</textarea></label>
+
+          <div class="settings-subtitle full-field"><h3>Serviços</h3></div>
+          <label>Chamada da seção<input name="servicos_eyebrow" value="{{ home.servicos_eyebrow }}"></label>
+          <label>Título da seção<input name="servicos_titulo" value="{{ home.servicos_titulo }}"></label>
+          <label class="full-field">Texto da seção<textarea name="servicos_texto">{{ home.servicos_texto or '' }}</textarea></label>
+          <label class="full-field">Cards de serviços<textarea name="servicos" placeholder="Título do serviço | Descrição do serviço">{{ home_textareas.servicos }}</textarea></label>
+
+          <div class="settings-subtitle full-field"><h3>Sobre</h3></div>
+          <label>Chamada da seção<input name="sobre_eyebrow" value="{{ home.sobre_eyebrow }}"></label>
+          <label>Título da seção<input name="sobre_titulo" value="{{ home.sobre_titulo }}"></label>
+          <label class="full-field">Primeiro texto<textarea name="sobre_texto_1">{{ home.sobre_texto_1 or '' }}</textarea></label>
+          <label class="full-field">Segundo texto<textarea name="sobre_texto_2">{{ home.sobre_texto_2 or '' }}</textarea></label>
+          <label class="full-field">Pilares do sobre<textarea name="sobre_pilares" placeholder="01 | Atendimento personalizado...">{{ home_textareas.sobre_pilares }}</textarea></label>
+
+          <div class="settings-subtitle full-field"><h3>Diferenciais</h3></div>
+          <label>Chamada da seção<input name="diferenciais_eyebrow" value="{{ home.diferenciais_eyebrow }}"></label>
+          <label>Título da seção<input name="diferenciais_titulo" value="{{ home.diferenciais_titulo }}"></label>
+          <label class="full-field">Cards de diferenciais<textarea name="diferenciais" placeholder="Título | Descrição">{{ home_textareas.diferenciais }}</textarea></label>
+
+          <div class="settings-subtitle full-field"><h3>FAQ</h3></div>
+          <label>Chamada da seção<input name="faq_eyebrow" value="{{ home.faq_eyebrow }}"></label>
+          <label>Título da seção<input name="faq_titulo" value="{{ home.faq_titulo }}"></label>
+          <label class="full-field">Texto de apoio<textarea name="faq_texto">{{ home.faq_texto or '' }}</textarea></label>
+          <label class="full-field">Perguntas e respostas<textarea name="faq" placeholder="Pergunta | Resposta">{{ home_textareas.faq }}</textarea></label>
+
+          <div class="settings-subtitle full-field"><h3>Rodapé</h3></div>
+          <label>Título do rodapé<input name="footer_titulo" value="{{ home.footer_titulo or '' }}"></label>
+          <label>Título dos serviços no rodapé<input name="footer_servicos_titulo" value="{{ home.footer_servicos_titulo or '' }}"></label>
+          <label class="full-field">Texto do rodapé<textarea name="footer_texto">{{ home.footer_texto or '' }}</textarea></label>
+          <label class="full-field">Serviços no rodapé<textarea name="footer_servicos_texto">{{ home.footer_servicos_texto or '' }}</textarea></label>
+
+          <button class="btn btn-primary full-field" type="submit">Salvar personalização</button>
+        </form>
+        <form class="settings-reset" method="post" action="{{ url_for('admin_configuracoes_personalizacao_padrao') }}">
+          <button class="btn app-secondary" type="submit">Retornar ao padrão</button>
+        </form>
+      </section>
+    {% elif secao == "seguranca" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Segurança e privacidade</h2>
+          <p>Histórico administrativo e alteração de senha. Tentativas de login são registradas sem senhas ou tokens.</p>
+        </div>
+        <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_seguranca_salvar') }}">
+          <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
+          <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
+          <label>Confirmar nova senha<input type="password" name="confirmar_senha" minlength="8" autocomplete="new-password" required></label>
+          <button class="btn btn-primary" type="submit">Alterar senha</button>
+        </form>
+        <div class="settings-grid">
+          <section class="settings-card">
+            <h3>Histórico de acessos</h3>
+            <div class="settings-table compact">
+              {% for acesso in historico_acessos %}
+                <div class="settings-table-row"><span><strong>{{ acesso.usuario.nome if acesso.usuario else acesso.email_informado or "Usuário não localizado" }}</strong><small>{{ acesso.criado_em.strftime("%d/%m/%Y %H:%M") }} · {{ "sucesso" if acesso.sucesso else "falha" }}</small></span><small>{{ acesso.ip or "-" }}</small></div>
+              {% else %}<p>Nenhum acesso registrado.</p>{% endfor %}
+            </div>
+          </section>
+          <section class="settings-card">
+            <h3>Auditoria</h3>
+            <div class="settings-table compact">
+              {% for log in logs_auditoria %}
+                <div class="settings-table-row"><span><strong>{{ log.acao }}</strong><small>{{ log.descricao }}</small></span><small>{{ log.criado_em.strftime("%d/%m/%Y %H:%M") }}</small></div>
+              {% else %}<p>Nenhuma ação registrada.</p>{% endfor %}
+            </div>
+          </section>
+        </div>
+        <section class="settings-card">
+          <h3>Solicitações de privacidade</h3>
+          <div class="settings-table">
+            {% for pedido in solicitacoes_privacidade %}
+              <div class="settings-table-row">
+                <span><strong>{{ pedido.cliente.usuario.nome }}</strong><small>{{ pedido.tipo|replace('_', ' ')|title }} · {{ pedido.status }} · {{ pedido.criado_em.strftime("%d/%m/%Y") }}</small></span>
+                <form method="post" action="{{ url_for('admin_privacidade_status', id=pedido.id) }}">
+                  <select name="status">
+                    {% for status in ["aberta", "em_analise", "negada", "concluida"] %}
+                      <option value="{{ status }}" {% if pedido.status == status %}selected{% endif %}>{{ status|replace('_', ' ')|title }}</option>
+                    {% endfor %}
+                  </select>
+                  <button class="btn btn-small app-secondary" type="submit">Salvar</button>
+                </form>
+              </div>
+            {% else %}<p>Nenhuma solicitação de privacidade.</p>{% endfor %}
+          </div>
+        </section>
+      </section>
+    {% elif secao == "backup" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Backup e manutenção</h2>
+          <p>Backups são gerados fora da pasta pública e só podem ser baixados por administradores autenticados.</p>
+        </div>
+        <div class="settings-grid">
+          <section class="settings-card">
+            <h3>Status</h3>
+            <p><strong>Último backup:</strong> {{ ultimo_backup.criado_em.strftime("%d/%m/%Y %H:%M") if ultimo_backup else "nenhum" }}</p>
+            <p><strong>Tamanho:</strong> {{ (ultimo_backup.tamanho_bytes // 1024) ~ " KB" if ultimo_backup else "-" }}</p>
+            <p><strong>Status:</strong> {{ ultimo_backup.status if ultimo_backup else "-" }}</p>
+            <p><strong>Ambiente:</strong> Flask / SQLAlchemy</p>
+            <p><strong>Banco:</strong> conectado</p>
+            <form method="post" action="{{ url_for('admin_backup_gerar') }}"><button class="btn btn-primary" type="submit">Gerar backup manual</button></form>
+          </section>
+          <section class="settings-card alert-card">
+            <h3>Manutenção sensível</h3>
+            <form class="compact-form" method="post" action="{{ url_for('admin_backup_limpar_temporarios') }}">
+              <label>Senha do administrador<input type="password" name="senha_atual" required></label>
+              <button class="btn app-secondary" type="submit">Limpar temporários</button>
+            </form>
+          </section>
+        </div>
+        <section class="settings-card">
+          <h3>Backups existentes</h3>
+          <div class="settings-table">
+            {% for backup in backups %}
+              <div class="settings-table-row">
+                <span><strong>{{ backup.nome_arquivo }}</strong><small>{{ backup.criado_em.strftime("%d/%m/%Y %H:%M") }} · {{ backup.tamanho_bytes }} bytes</small></span>
+                <a class="btn btn-small app-secondary" href="{{ url_for('admin_backup_baixar', id=backup.id) }}">Baixar</a>
+                <form method="post" action="{{ url_for('admin_backup_excluir', id=backup.id) }}"><input type="password" name="senha_atual" placeholder="Senha" required><button class="btn btn-small app-secondary" type="submit">Excluir</button></form>
+                <form method="post" action="{{ url_for('admin_backup_restaurar', id=backup.id) }}"><input type="password" name="senha_atual" placeholder="Senha" required><input name="confirmacao" placeholder="RESTAURAR" required><button class="btn btn-small app-secondary" type="submit">Validar restauração</button></form>
+              </div>
+            {% else %}<p>Nenhum backup gerado.</p>{% endfor %}
+          </div>
+        </section>
+      </section>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

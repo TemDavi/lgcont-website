@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/crm.css') }}">
 </head>
-<body class="app-body">
+<body class="app-body {{ 'theme-escuro' if tema_usuario_atual == 'escuro' else 'theme-claro' }}">
   {% block body %}
   <header class="app-header">
     {% if current_user.is_authenticated %}

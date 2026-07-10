@@ -1,6 +1,9 @@
 from functools import wraps
 from getpass import getpass
+import json
 import secrets
+import re
+import shutil
 from datetime import date, datetime
 from pathlib import Path
 from xml.dom import minidom
@@ -9,12 +12,13 @@ from xml.etree import ElementTree as ET
 import os
 
 import click
-from flask import Flask, Response, current_app, flash, redirect, render_template, request, url_for
+from flask import Flask, Response, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 from config import Config
 from email_service import EmailDeliveryError, enviar_email_ativacao, enviar_email_reset_senha
@@ -24,20 +28,109 @@ from models import (
     STATUS_SOLICITACAO,
     SERVICOS_ATENDIMENTO,
     TIPOS_CLIENTE,
+    PRIORIDADES_ATENDIMENTO,
     STATUS_AGENDAMENTO,
     Agendamento,
     Atividade,
+    BackupRegistro,
+    CategoriaAtendimento,
     Cliente,
+    ConfiguracaoAtendimento,
+    ConfiguracaoEmpresa,
+    ConfiguracaoPaginaInicial,
+    ConfiguracaoSistema,
     Conversa,
+    HistoricoAcesso,
+    ItemPaginaInicial,
+    LogAuditoria,
     Mensagem,
     Pendencia,
+    PreferenciaNotificacao,
     ServicoCliente,
     SolicitacaoAtendimento,
+    SolicitacaoPrivacidade,
     Usuario,
     db,
 )
 
 STATUS_SERVICO_ATIVO = ("solicitado", "em análise", "aguardando documentos")
+ADMIN_CONFIG_SECOES = ("conta", "empresa", "atendimento", "personalizacao", "seguranca", "backup")
+CLIENTE_CONFIG_SECOES = ("conta", "dados", "notificacoes", "seguranca", "privacidade")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+CEP_RE = re.compile(r"^\d{5}-?\d{3}$")
+DOCUMENTO_RE = re.compile(r"^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$|^\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}$")
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "ico", "svg"}
+DEFAULT_CATEGORIAS_ATENDIMENTO = (
+    "Impostos",
+    "Folha de pagamento",
+    "Documentos",
+    "Abertura de empresa",
+    "Alteração cadastral",
+    "Dúvidas gerais",
+)
+HOME_DEFAULT = {
+    "hero_eyebrow": "Contabilidade, perícias e assessoria empresarial",
+    "hero_titulo": "Soluções contábeis para empresas, MEIs e profissionais autônomos",
+    "hero_texto": "Atuação com contabilidade, perícias, assessoria fiscal, trabalhista e empresarial, sempre com organização, segurança e atendimento próximo.",
+    "hero_card_rotulo": "Atendimento direto",
+    "hero_card_valor": "(92) 99199-2520",
+    "servicos_eyebrow": "Serviços",
+    "servicos_titulo": "Suporte contábil completo para cada fase do seu negócio",
+    "servicos_texto": "Da abertura ao acompanhamento fiscal, trabalhista e documental, com processos claros e orientação técnica.",
+    "sobre_eyebrow": "Sobre",
+    "sobre_titulo": "Contabilidade com confiança, proximidade e responsabilidade técnica",
+    "sobre_texto_1": "A Luciano Garcês Contabilidade e Perícias oferece atendimento profissional para quem precisa manter sua empresa regular, tomar decisões com mais segurança e resolver demandas contábeis com clareza.",
+    "sobre_texto_2": "O trabalho é conduzido com atenção aos detalhes, organização documental e compromisso com prazos, buscando entregar um suporte prático para empresas, MEIs e profissionais autônomos.",
+    "diferenciais_eyebrow": "Diferenciais",
+    "diferenciais_titulo": "Uma assessoria feita para trazer tranquilidade",
+    "faq_eyebrow": "Perguntas Frequentes",
+    "faq_titulo": "Respostas rápidas para as dúvidas mais comuns",
+    "faq_texto": "Abra uma pergunta para ver a resposta. Se ainda precisar de orientação, solicite um atendimento personalizado.",
+    "footer_titulo": "Luciano Garcês Contabilidade e Perícias",
+    "footer_texto": "Contabilidade, perícias, assessoria fiscal, trabalhista e empresarial.",
+    "footer_servicos_titulo": "Serviços principais",
+    "footer_servicos_texto": "Abertura de empresa, Simples Nacional, MEI, IRPF, DECORE e perícia contábil.",
+}
+HOME_DEFAULT_ITEMS = {
+    "hero_stat": [
+        ("12+", "serviços contábeis"),
+        ("MEI", "empresas e autônomos"),
+        ("IRPF", "declarações e suporte"),
+    ],
+    "servico": [
+        ("Abertura, legalização e baixa de empresa", "Formalização, regularização e encerramento com acompanhamento documental."),
+        ("Gestão tributária", "Organização de obrigações fiscais e orientação para melhor enquadramento."),
+        ("Assessoria trabalhista", "Rotinas de folha, admissões, rescisões e suporte nas relações trabalhistas."),
+        ("Assessoria contábil", "Escrituração, demonstrações e acompanhamento da saúde contábil da empresa."),
+        ("Perícia contábil", "Análises técnicas, cálculos e relatórios para demandas judiciais e extrajudiciais."),
+        ("Certificado digital", "Apoio na emissão e uso de certificado digital para empresas e profissionais."),
+        ("Serviços para MEI", "Regularização, declaração anual, orientação e acompanhamento para microempreendedores."),
+        ("Simples Nacional", "Apuração, obrigações e orientação para empresas optantes pelo regime simplificado."),
+        ("Licenciamentos", "Suporte para licenças e exigências necessárias ao funcionamento do negócio."),
+        ("Contratos", "Organização e apoio documental para relações comerciais e empresariais."),
+        ("Declaração de IRPF", "Preenchimento e conferência da declaração de imposto de renda pessoa física."),
+        ("DECORE", "Emissão de declaração comprobatória de rendimentos para profissionais autônomos."),
+    ],
+    "sobre_pilar": [
+        ("01", "Atendimento personalizado e orientação objetiva."),
+        ("02", "Rotinas organizadas para reduzir riscos e atrasos."),
+        ("03", "Suporte técnico para decisões fiscais e empresariais."),
+    ],
+    "diferencial": [
+        ("Atendimento personalizado", "Contato próximo para entender a realidade de cada cliente."),
+        ("Segurança nas informações", "Cuidado com documentos, dados fiscais e informações estratégicas."),
+        ("Agilidade nos processos", "Fluxos organizados para acompanhar prazos e demandas importantes."),
+        ("Experiência técnica", "Conhecimento contábil aplicado a rotinas, perícias e obrigações legais."),
+        ("Suporte para empresas e autônomos", "Serviços adaptados a diferentes portes, regimes e necessidades."),
+    ],
+    "faq": [
+        ("Quanto custa abrir uma empresa?", "O valor depende do tipo de empresa, da atividade e das taxas dos órgãos responsáveis. Solicite um atendimento para receber uma análise e um orçamento adequado ao seu caso."),
+        ("Preciso trocar de contador?", "Não necessariamente. Primeiro avaliamos sua situação e orientamos sobre a melhor solução. Se a troca for indicada, acompanhamos todo o processo de transição."),
+        ("Quanto tempo demora?", "O prazo varia conforme o serviço e a análise dos órgãos envolvidos. Após receber seus dados, informamos uma estimativa e acompanhamos cada etapa."),
+        ("Vocês atendem online?", "Sim. O atendimento e o envio de documentos podem ser realizados online, com segurança e acompanhamento durante todo o processo."),
+        ("Quais documentos preciso?", "Os documentos variam de acordo com o serviço solicitado. Durante o primeiro atendimento, enviamos uma lista personalizada para evitar documentos desnecessários."),
+    ],
+}
 SITEMAP_BASE_URL = "https://lucianogarcescontabilidade.com.br"
 ROBOTS_TXT = """User-agent: *
 Allow: /
@@ -50,45 +143,246 @@ def registrar_atividade(tipo, descricao, usuario_id=None, cliente_id=None):
     db.session.add(Atividade(tipo=tipo, descricao=descricao, usuario_id=usuario_id, cliente_id=cliente_id))
 
 
-# Edite esta lista para alterar, adicionar ou remover perguntas do FAQ da home.
-# Cada item precisa apenas dos campos "pergunta" e "resposta".
-FAQ_ITEMS = (
-    {
-        "pergunta": "Quanto custa abrir uma empresa?",
-        "resposta": (
-            "O valor depende do tipo de empresa, da atividade e das taxas dos órgãos responsáveis. "
-            "Solicite um atendimento para receber uma análise e um orçamento adequado ao seu caso."
-        ),
-    },
-    {
-        "pergunta": "Preciso trocar de contador?",
-        "resposta": (
-            "Não necessariamente. Primeiro avaliamos sua situação e orientamos sobre a melhor solução. "
-            "Se a troca for indicada, acompanhamos todo o processo de transição."
-        ),
-    },
-    {
-        "pergunta": "Quanto tempo demora?",
-        "resposta": (
-            "O prazo varia conforme o serviço e a análise dos órgãos envolvidos. Após receber seus dados, "
-            "informamos uma estimativa e acompanhamos cada etapa."
-        ),
-    },
-    {
-        "pergunta": "Vocês atendem online?",
-        "resposta": (
-            "Sim. O atendimento e o envio de documentos podem ser realizados online, com segurança e "
-            "acompanhamento durante todo o processo."
-        ),
-    },
-    {
-        "pergunta": "Quais documentos preciso?",
-        "resposta": (
-            "Os documentos variam de acordo com o serviço solicitado. Durante o primeiro atendimento, "
-            "enviamos uma lista personalizada para evitar documentos desnecessários."
-        ),
-    },
-)
+def registrar_auditoria(acao, descricao, usuario_id=None, entidade=None, entidade_id=None):
+    usuario_logado = usuario_id
+    if usuario_logado is None and current_user.is_authenticated:
+        usuario_logado = current_user.id
+    db.session.add(
+        LogAuditoria(
+            usuario_id=usuario_logado,
+            acao=acao,
+            entidade=entidade,
+            entidade_id=entidade_id,
+            descricao=descricao[:255],
+            ip=request.remote_addr if request else None,
+        )
+    )
+
+
+def registrar_historico_acesso(usuario, email_informado, sucesso):
+    db.session.add(
+        HistoricoAcesso(
+            usuario_id=usuario.id if usuario else None,
+            email_informado=(email_informado or "").strip().lower()[:120] or None,
+            ip=request.remote_addr,
+            user_agent=(request.headers.get("User-Agent") or "")[:255] or None,
+            sucesso=sucesso,
+        )
+    )
+
+
+def validar_email(valor):
+    email = (valor or "").strip().lower()
+    return email if EMAIL_RE.match(email) else None
+
+
+def validar_documento(valor, obrigatorio=False):
+    documento = (valor or "").strip()
+    if not documento:
+        return None if not obrigatorio else False
+    return documento if DOCUMENTO_RE.match(documento) else False
+
+
+def validar_cep(valor):
+    cep = (valor or "").strip()
+    if not cep:
+        return None
+    return cep if CEP_RE.match(cep) else False
+
+
+def validar_estado(valor):
+    estado = (valor or "").strip().upper()
+    if not estado:
+        return None
+    return estado if len(estado) == 2 and estado.isalpha() else False
+
+
+def obter_registro_unico(modelo):
+    registro = modelo.query.order_by(modelo.id.asc()).first()
+    if not registro:
+        registro = modelo()
+        db.session.add(registro)
+        db.session.flush()
+    return registro
+
+
+def obter_preferencias_notificacao(cliente):
+    if cliente.preferencias_notificacao:
+        return cliente.preferencias_notificacao
+    preferencias = PreferenciaNotificacao(cliente=cliente)
+    db.session.add(preferencias)
+    db.session.flush()
+    return preferencias
+
+
+def restaurar_atendimento_padrao(atendimento):
+    atendimento.prioridade_padrao = "normal"
+    atendimento.prazo_resposta_horas = 24
+    atendimento.mensagem_abertura = None
+    atendimento.mensagem_conclusao = None
+    atendimento.permitir_anexos = False
+    atendimento.tamanho_maximo_anexo_mb = 10
+    atendimento.formatos_permitidos = None
+    atendimento.whatsapp_redirecionamento = None
+    for nome in DEFAULT_CATEGORIAS_ATENDIMENTO:
+        categoria = CategoriaAtendimento.query.filter(func.lower(CategoriaAtendimento.nome) == nome.lower()).first()
+        if categoria:
+            categoria.ativa = True
+        else:
+            db.session.add(CategoriaAtendimento(nome=nome))
+
+
+def restaurar_personalizacao_padrao(sistema):
+    sistema.nome_sistema = "LG Contabilidade CRM"
+
+
+def obter_config_home():
+    home = ConfiguracaoPaginaInicial.query.order_by(ConfiguracaoPaginaInicial.id.asc()).first()
+    if not home:
+        home = ConfiguracaoPaginaInicial(**HOME_DEFAULT)
+        db.session.add(home)
+        db.session.flush()
+    return home
+
+
+def garantir_itens_home_padrao():
+    for tipo, itens in HOME_DEFAULT_ITEMS.items():
+        if ItemPaginaInicial.query.filter_by(tipo=tipo).first():
+            continue
+        for ordem, item in enumerate(itens, start=1):
+            if tipo in {"hero_stat", "sobre_pilar"}:
+                marcador, descricao = item
+                titulo = marcador
+            else:
+                titulo, descricao = item
+                marcador = f"{ordem:02d}" if tipo == "servico" else None
+            db.session.add(
+                ItemPaginaInicial(
+                    tipo=tipo,
+                    titulo=titulo,
+                    descricao=descricao,
+                    marcador=marcador,
+                    ordem=ordem,
+                )
+            )
+
+
+def restaurar_home_padrao(home):
+    for campo, valor in HOME_DEFAULT.items():
+        setattr(home, campo, valor)
+    ItemPaginaInicial.query.delete(synchronize_session=False)
+    for tipo, itens in HOME_DEFAULT_ITEMS.items():
+        for ordem, item in enumerate(itens, start=1):
+            if tipo in {"hero_stat", "sobre_pilar"}:
+                marcador, descricao = item
+                titulo = marcador
+            else:
+                titulo, descricao = item
+                marcador = f"{ordem:02d}" if tipo == "servico" else None
+            db.session.add(
+                ItemPaginaInicial(
+                    tipo=tipo,
+                    titulo=titulo,
+                    descricao=descricao,
+                    marcador=marcador,
+                    ordem=ordem,
+                )
+            )
+
+
+def itens_home(tipo):
+    return ItemPaginaInicial.query.filter_by(tipo=tipo, ativo=True).order_by(ItemPaginaInicial.ordem.asc(), ItemPaginaInicial.id.asc()).all()
+
+
+def itens_para_textarea(tipo):
+    linhas = []
+    for item in itens_home(tipo):
+        if tipo in {"hero_stat", "sobre_pilar"}:
+            linhas.append(f"{item.marcador or item.titulo} | {item.descricao or ''}")
+        else:
+            linhas.append(f"{item.titulo} | {item.descricao or ''}")
+    return "\n".join(linhas)
+
+
+def salvar_itens_textarea(tipo, texto):
+    ItemPaginaInicial.query.filter_by(tipo=tipo).delete(synchronize_session=False)
+    linhas = [linha.strip() for linha in (texto or "").splitlines() if linha.strip()]
+    for ordem, linha in enumerate(linhas, start=1):
+        partes = [parte.strip() for parte in linha.split("|", 1)]
+        titulo = partes[0]
+        descricao = partes[1] if len(partes) > 1 else ""
+        marcador = f"{ordem:02d}" if tipo == "servico" else None
+        if tipo in {"hero_stat", "sobre_pilar"}:
+            marcador = titulo
+        db.session.add(
+            ItemPaginaInicial(
+                tipo=tipo,
+                titulo=titulo,
+                descricao=descricao,
+                marcador=marcador,
+                ordem=ordem,
+            )
+        )
+
+
+def caminho_upload_config():
+    caminho = Path(current_app.root_path) / "static" / "uploads" / "configuracoes"
+    caminho.mkdir(parents=True, exist_ok=True)
+    return caminho
+
+
+def salvar_imagem_config(campo, prefixo):
+    arquivo = request.files.get(campo)
+    if not arquivo or not arquivo.filename:
+        return None
+    nome_seguro = secure_filename(arquivo.filename)
+    extensao = nome_seguro.rsplit(".", 1)[-1].lower() if "." in nome_seguro else ""
+    if extensao not in ALLOWED_IMAGE_EXTENSIONS:
+        raise ValueError("Envie uma imagem válida.")
+    nome_final = f"{prefixo}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}-{secrets.token_hex(4)}.{extensao}"
+    destino = caminho_upload_config() / nome_final
+    arquivo.save(destino)
+    return f"uploads/configuracoes/{nome_final}"
+
+
+def caminho_backups():
+    caminho = Path(current_app.instance_path) / "backups"
+    caminho.mkdir(parents=True, exist_ok=True)
+    return caminho
+
+
+def validar_senha_atual(usuario, senha_atual):
+    if not check_password_hash(usuario.senha_hash, senha_atual or ""):
+        flash("Senha atual incorreta.", "erro")
+        return False
+    return True
+
+
+def atualizar_senha_usuario(usuario, senha_atual, nova_senha, confirmar_senha):
+    if not validar_senha_atual(usuario, senha_atual):
+        return False
+    if len(nova_senha or "") < 8:
+        flash("A nova senha deve ter pelo menos 8 caracteres.", "erro")
+        return False
+    if nova_senha != confirmar_senha:
+        flash("As senhas não conferem.", "erro")
+        return False
+    usuario.senha_hash = generate_password_hash(nova_senha)
+    registrar_auditoria("alterar_senha", "Senha alterada.", usuario.id, "Usuario", usuario.id)
+    return True
+
+
+def atualizar_email_unico(usuario, novo_email):
+    email = validar_email(novo_email)
+    if not email:
+        flash("Informe um e-mail válido.", "erro")
+        return False
+    existente = Usuario.query.filter(Usuario.email == email, Usuario.id != usuario.id).first()
+    if existente:
+        flash("Já existe um usuário com este e-mail.", "erro")
+        return False
+    usuario.email = email
+    return True
 
 
 SITEMAP_PUBLIC_PAGES = (
@@ -243,17 +537,53 @@ def atualizar_schema_simples():
         return
 
     colunas_usuario = {coluna["name"] for coluna in inspector.get_columns("usuarios")}
+    colunas_cliente = {coluna["name"] for coluna in inspector.get_columns("clientes")} if "clientes" in inspector.get_table_names() else set()
     comandos = []
 
+    for nome, definicao in {
+        "telefone": "VARCHAR(30) NULL",
+        "cargo": "VARCHAR(80) NULL",
+        "ultimo_acesso": "DATETIME NULL",
+        "tema_preferido": "VARCHAR(20) NOT NULL DEFAULT 'claro'",
+    }.items():
+        if nome not in colunas_usuario:
+            comandos.append(f"ALTER TABLE usuarios ADD COLUMN {nome} {definicao}")
     if "precisa_definir_senha" not in colunas_usuario:
         comandos.append("ALTER TABLE usuarios ADD COLUMN precisa_definir_senha BOOLEAN NOT NULL DEFAULT 0")
     if "senha_temporaria" not in colunas_usuario:
         comandos.append("ALTER TABLE usuarios ADD COLUMN senha_temporaria VARCHAR(80) NULL")
+    for nome, definicao in {
+        "whatsapp": "VARCHAR(30) NULL",
+        "data_nascimento": "DATE NULL",
+        "razao_social": "VARCHAR(160) NULL",
+        "nome_fantasia": "VARCHAR(160) NULL",
+        "inscricao_estadual": "VARCHAR(50) NULL",
+        "responsavel": "VARCHAR(120) NULL",
+        "email_comercial": "VARCHAR(120) NULL",
+        "cep": "VARCHAR(12) NULL",
+        "cidade": "VARCHAR(80) NULL",
+        "estado": "VARCHAR(2) NULL",
+        "regime_tributario": "VARCHAR(80) NULL",
+    }.items():
+        if nome not in colunas_cliente:
+            comandos.append(f"ALTER TABLE clientes ADD COLUMN {nome} {definicao}")
 
     for comando in comandos:
         db.session.execute(text(comando))
     if comandos:
         db.session.commit()
+
+
+def inicializar_configuracoes_padrao():
+    obter_registro_unico(ConfiguracaoEmpresa)
+    obter_registro_unico(ConfiguracaoSistema)
+    obter_registro_unico(ConfiguracaoAtendimento)
+    obter_config_home()
+    for nome in DEFAULT_CATEGORIAS_ATENDIMENTO:
+        if not CategoriaAtendimento.query.filter(func.lower(CategoriaAtendimento.nome) == nome.lower()).first():
+            db.session.add(CategoriaAtendimento(nome=nome))
+    garantir_itens_home_padrao()
+    db.session.commit()
 
 
 def obter_lastmod(*caminhos_relativos):
@@ -328,6 +658,41 @@ def gerar_sitemap_xml(paginas):
     return minidom.parseString(xml_bruto).toprettyxml(indent="  ", encoding="utf-8").decode("utf-8")
 
 
+def serializar_tabela(modelo, campos):
+    itens = []
+    for registro in modelo.query.all():
+        item = {}
+        for campo in campos:
+            valor = getattr(registro, campo)
+            if isinstance(valor, (datetime, date)):
+                valor = valor.isoformat()
+            item[campo] = valor
+        itens.append(item)
+    return itens
+
+
+def gerar_backup_json():
+    dados = {
+        "gerado_em": datetime.utcnow().isoformat(),
+        "versao": "lg-crm-1",
+        "usuarios": serializar_tabela(Usuario, ["id", "nome", "email", "tipo", "telefone", "cargo", "tema_preferido", "criado_em", "ultimo_acesso"]),
+        "clientes": serializar_tabela(Cliente, ["id", "usuario_id", "telefone", "whatsapp", "cpf_cnpj", "endereco", "tipo_cliente", "cep", "cidade", "estado", "criado_em"]),
+        "solicitacoes": serializar_tabela(SolicitacaoAtendimento, ["id", "nome", "email", "telefone", "cpf_cnpj", "tipo_cliente", "servico_desejado", "status", "criado_em"]),
+        "servicos": serializar_tabela(ServicoCliente, ["id", "cliente_id", "titulo", "status", "criado_em", "atualizado_em"]),
+        "pendencias": serializar_tabela(Pendencia, ["id", "cliente_id", "titulo", "status", "criado_em"]),
+        "configuracao_empresa": serializar_tabela(ConfiguracaoEmpresa, ["id", "nome_empresa", "razao_social", "nome_fantasia", "cnpj", "telefone", "whatsapp", "email_comercial", "cidade", "estado", "cep", "logo_path"]),
+        "configuracao_sistema": serializar_tabela(ConfiguracaoSistema, ["id", "nome_sistema"]),
+        "configuracao_pagina_inicial": serializar_tabela(ConfiguracaoPaginaInicial, ["id", "hero_eyebrow", "hero_titulo", "hero_texto", "servicos_titulo", "sobre_titulo", "diferenciais_titulo", "faq_titulo"]),
+        "itens_pagina_inicial": serializar_tabela(ItemPaginaInicial, ["id", "tipo", "titulo", "descricao", "marcador", "ordem", "ativo"]),
+        "configuracao_atendimento": serializar_tabela(ConfiguracaoAtendimento, ["id", "prioridade_padrao", "prazo_resposta_horas", "permitir_anexos", "tamanho_maximo_anexo_mb", "formatos_permitidos"]),
+        "categorias_atendimento": serializar_tabela(CategoriaAtendimento, ["id", "nome", "ativa", "criado_em"]),
+    }
+    nome = f"backup-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}.json"
+    destino = caminho_backups() / nome
+    destino.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
+    return nome, destino
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -338,17 +703,27 @@ def create_app():
         # Nesta etapa inicial, o create_all facilita criar as novas tabelas.
         db.create_all()
         atualizar_schema_simples()
+        inicializar_configuracoes_padrao()
 
     @app.context_processor
-    def disponibilizar_contador_mensagens():
+    def disponibilizar_dados_globais():
+        sistema = ConfiguracaoSistema.query.order_by(ConfiguracaoSistema.id.asc()).first()
+        dados = {
+            "mensagens_nao_lidas": 0,
+            "config_sistema_global": sistema,
+            "tema_usuario_atual": "claro",
+        }
         if not current_user.is_authenticated:
-            return {"mensagens_nao_lidas": 0}
+            return dados
+        tema_preferido = getattr(current_user, "tema_preferido", None)
+        dados["tema_usuario_atual"] = tema_preferido if tema_preferido in {"claro", "escuro"} else "claro"
         if current_user.tipo == "cliente":
             cliente = Cliente.query.filter_by(usuario_id=current_user.id).first()
             total = contar_mensagens_nao_lidas(cliente.id) if cliente else 0
         else:
             total = contar_mensagens_nao_lidas()
-        return {"mensagens_nao_lidas": total}
+        dados["mensagens_nao_lidas"] = total
+        return dados
 
     @app.get("/sitemap.xml")
     def sitemap_xml():
@@ -365,7 +740,17 @@ def create_app():
     # Rotas publicas do site institucional.
     @app.get("/")
     def index():
-        return render_template("index.html", faq_items=FAQ_ITEMS)
+        home = obter_config_home()
+        return render_template(
+            "index.html",
+            home=home,
+            hero_stats=itens_home("hero_stat"),
+            servicos_home=itens_home("servico"),
+            sobre_pilares=itens_home("sobre_pilar"),
+            diferenciais_home=itens_home("diferencial"),
+            faq_items=itens_home("faq"),
+            sistema=ConfiguracaoSistema.query.order_by(ConfiguracaoSistema.id.asc()).first(),
+        )
 
     @app.route("/solicitar-atendimento", methods=["GET", "POST"])
     def solicitar_atendimento():
@@ -439,9 +824,14 @@ def create_app():
             usuario = Usuario.query.filter_by(email=email).first()
 
             if not usuario or not check_password_hash(usuario.senha_hash, senha):
+                registrar_historico_acesso(usuario, email, False)
+                db.session.commit()
                 flash("E-mail ou senha inválidos.", "erro")
                 return redirect(url_for("login"))
 
+            registrar_historico_acesso(usuario, email, True)
+            usuario.ultimo_acesso = datetime.utcnow()
+            db.session.commit()
             login_user(usuario)
             flash("Login realizado com sucesso.", "sucesso")
             if usuario.tipo == "cliente" and usuario.precisa_definir_senha:
@@ -1037,7 +1427,399 @@ def create_app():
 
     @app.get("/admin/configuracoes")
     @admin_required
-    def admin_configuracoes(): return render_template("admin/configuracoes.html")
+    def admin_configuracoes():
+        return redirect(url_for("admin_configuracoes_secao", secao="conta"))
+
+    @app.get("/admin/configuracoes/<secao>")
+    @admin_required
+    def admin_configuracoes_secao(secao):
+        if secao not in ADMIN_CONFIG_SECOES:
+            flash("Seção de configurações inválida.", "erro")
+            return redirect(url_for("admin_configuracoes"))
+        empresa = obter_registro_unico(ConfiguracaoEmpresa)
+        sistema = obter_registro_unico(ConfiguracaoSistema)
+        home = obter_config_home()
+        atendimento = obter_registro_unico(ConfiguracaoAtendimento)
+        categorias = CategoriaAtendimento.query.order_by(CategoriaAtendimento.ativa.desc(), CategoriaAtendimento.nome.asc()).all()
+        historico_acessos = HistoricoAcesso.query.order_by(HistoricoAcesso.criado_em.desc()).limit(20).all()
+        logs_auditoria = LogAuditoria.query.order_by(LogAuditoria.criado_em.desc()).limit(20).all()
+        backups = BackupRegistro.query.order_by(BackupRegistro.criado_em.desc()).limit(20).all()
+        solicitacoes_privacidade = SolicitacaoPrivacidade.query.order_by(SolicitacaoPrivacidade.criado_em.desc()).limit(20).all()
+        ultimo_backup = backups[0] if backups else None
+        return render_template(
+            "admin/configuracoes.html",
+            secao=secao,
+            secoes=ADMIN_CONFIG_SECOES,
+            empresa=empresa,
+            sistema=sistema,
+            home=home,
+            home_textareas={
+                "hero_stats": itens_para_textarea("hero_stat"),
+                "servicos": itens_para_textarea("servico"),
+                "sobre_pilares": itens_para_textarea("sobre_pilar"),
+                "diferenciais": itens_para_textarea("diferencial"),
+                "faq": itens_para_textarea("faq"),
+            },
+            atendimento=atendimento,
+            categorias=categorias,
+            prioridades=PRIORIDADES_ATENDIMENTO,
+            status_solicitacao=STATUS_SOLICITACAO,
+            historico_acessos=historico_acessos,
+            logs_auditoria=logs_auditoria,
+            backups=backups,
+            ultimo_backup=ultimo_backup,
+            solicitacoes_privacidade=solicitacoes_privacidade,
+        )
+
+    @app.post("/admin/configuracoes/conta")
+    @admin_required
+    def admin_configuracoes_conta_salvar():
+        acao = request.form.get("acao")
+        if acao == "perfil":
+            nome = (request.form.get("nome") or "").strip()
+            telefone = (request.form.get("telefone") or "").strip()
+            cargo = (request.form.get("cargo") or "").strip()
+            if not nome:
+                flash("Informe o nome de exibição.", "erro")
+                return redirect(url_for("admin_configuracoes_secao", secao="conta"))
+            if not atualizar_email_unico(current_user, request.form.get("email")):
+                return redirect(url_for("admin_configuracoes_secao", secao="conta"))
+            current_user.nome = nome
+            current_user.telefone = telefone or None
+            current_user.cargo = cargo or None
+            registrar_auditoria("editar_perfil_admin", "Administrador atualizou o próprio perfil.", current_user.id, "Usuario", current_user.id)
+            db.session.commit()
+            flash("Perfil atualizado com sucesso.", "sucesso")
+        elif acao == "senha":
+            if atualizar_senha_usuario(
+                current_user,
+                request.form.get("senha_atual"),
+                request.form.get("nova_senha"),
+                request.form.get("confirmar_senha"),
+            ):
+                db.session.commit()
+                flash("Senha alterada com sucesso.", "sucesso")
+            else:
+                db.session.rollback()
+        elif acao == "tema":
+            tema = (request.form.get("tema") or "").strip()
+            if tema not in {"claro", "escuro"}:
+                flash("Tema invalido.", "erro")
+                return redirect(url_for("admin_configuracoes_secao", secao="conta"))
+            current_user.tema_preferido = tema
+            registrar_auditoria("alterar_tema_usuario", "Administrador alterou o tema da propria conta.", current_user.id, "Usuario", current_user.id)
+            db.session.commit()
+            flash("Tema da sua conta atualizado.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="conta"))
+
+    @app.post("/admin/configuracoes/empresa")
+    @admin_required
+    def admin_configuracoes_empresa_salvar():
+        empresa = obter_registro_unico(ConfiguracaoEmpresa)
+        email = validar_email(request.form.get("email_comercial")) if request.form.get("email_comercial") else None
+        cnpj = validar_documento(request.form.get("cnpj"))
+        cep = validar_cep(request.form.get("cep"))
+        estado = validar_estado(request.form.get("estado"))
+        if request.form.get("email_comercial") and not email:
+            flash("Informe um e-mail comercial válido.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="empresa"))
+        if cnpj is False:
+            flash("Informe um CNPJ válido.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="empresa"))
+        if cep is False:
+            flash("Informe um CEP válido.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="empresa"))
+        if estado is False:
+            flash("Informe o estado com duas letras.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="empresa"))
+        try:
+            logo_path = salvar_imagem_config("logo", "empresa-logo")
+        except ValueError as erro:
+            flash(str(erro), "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="empresa"))
+        for campo in ("nome_empresa", "razao_social", "nome_fantasia", "telefone", "whatsapp", "endereco", "numero", "complemento", "bairro", "cidade", "horario_atendimento", "site", "instagram"):
+            setattr(empresa, campo, (request.form.get(campo) or "").strip() or None)
+        empresa.nome_empresa = empresa.nome_empresa or "LG Contabilidade"
+        empresa.email_comercial = email
+        empresa.cnpj = cnpj or None
+        empresa.cep = cep or None
+        empresa.estado = estado or None
+        if logo_path:
+            empresa.logo_path = logo_path
+        registrar_auditoria("editar_empresa", "Dados da empresa atualizados.", current_user.id, "ConfiguracaoEmpresa", empresa.id)
+        db.session.commit()
+        flash("Dados da empresa atualizados.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="empresa"))
+
+    @app.post("/admin/configuracoes/atendimento")
+    @admin_required
+    def admin_configuracoes_atendimento_salvar():
+        atendimento = obter_registro_unico(ConfiguracaoAtendimento)
+        prioridade = (request.form.get("prioridade_padrao") or "").strip()
+        if prioridade not in PRIORIDADES_ATENDIMENTO:
+            flash("Prioridade padrão inválida.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+        prazo = request.form.get("prazo_resposta_horas", type=int) or 24
+        tamanho = request.form.get("tamanho_maximo_anexo_mb", type=int) or 10
+        if prazo < 1 or tamanho < 1:
+            flash("Prazo e tamanho máximo devem ser maiores que zero.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+        atendimento.prioridade_padrao = prioridade
+        atendimento.prazo_resposta_horas = prazo
+        atendimento.mensagem_abertura = (request.form.get("mensagem_abertura") or "").strip() or None
+        atendimento.mensagem_conclusao = (request.form.get("mensagem_conclusao") or "").strip() or None
+        atendimento.permitir_anexos = request.form.get("permitir_anexos") == "on"
+        atendimento.tamanho_maximo_anexo_mb = tamanho
+        atendimento.formatos_permitidos = (request.form.get("formatos_permitidos") or "").strip() or None
+        atendimento.whatsapp_redirecionamento = (request.form.get("whatsapp_redirecionamento") or "").strip() or None
+        registrar_auditoria("editar_atendimento", "Configurações de atendimento atualizadas.", current_user.id, "ConfiguracaoAtendimento", atendimento.id)
+        db.session.commit()
+        flash("Configurações de atendimento salvas.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+
+    @app.post("/admin/configuracoes/atendimento/padrao")
+    @admin_required
+    def admin_configuracoes_atendimento_padrao():
+        atendimento = obter_registro_unico(ConfiguracaoAtendimento)
+        restaurar_atendimento_padrao(atendimento)
+        registrar_auditoria("restaurar_atendimento_padrao", "Configurações de atendimento retornaram ao padrão.", current_user.id, "ConfiguracaoAtendimento", atendimento.id)
+        db.session.commit()
+        flash("Configurações de atendimento restauradas para o padrão.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+
+    @app.post("/admin/configuracoes/atendimento/categorias")
+    @admin_required
+    def admin_categoria_atendimento_salvar():
+        nome = (request.form.get("nome") or "").strip()
+        if not nome:
+            flash("Informe o nome da categoria.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+        if CategoriaAtendimento.query.filter(func.lower(CategoriaAtendimento.nome) == nome.lower()).first():
+            flash("Já existe uma categoria com este nome.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+        categoria = CategoriaAtendimento(nome=nome)
+        db.session.add(categoria)
+        registrar_auditoria("criar_categoria", f"Categoria de atendimento {nome} criada.", current_user.id, "CategoriaAtendimento")
+        db.session.commit()
+        flash("Categoria criada.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+
+    @app.post("/admin/configuracoes/atendimento/categorias/<int:id>/alternar")
+    @admin_required
+    def admin_categoria_atendimento_alternar(id):
+        categoria = CategoriaAtendimento.query.get_or_404(id)
+        categoria.ativa = not categoria.ativa
+        registrar_auditoria("alternar_categoria", f"Categoria {categoria.nome} {'ativada' if categoria.ativa else 'desativada'}.", current_user.id, "CategoriaAtendimento", categoria.id)
+        db.session.commit()
+        flash("Categoria atualizada.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+
+    @app.post("/admin/configuracoes/atendimento/categorias/<int:id>/excluir")
+    @admin_required
+    def admin_categoria_atendimento_excluir(id):
+        categoria = CategoriaAtendimento.query.get_or_404(id)
+        confirmacao = (request.form.get("confirmacao") or "").strip().lower()
+        if confirmacao != "excluir":
+            flash("Digite EXCLUIR para confirmar.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+        em_uso = SolicitacaoAtendimento.query.filter(SolicitacaoAtendimento.servico_desejado == categoria.nome).first()
+        if em_uso:
+            categoria.ativa = False
+            registrar_auditoria("desativar_categoria_em_uso", f"Categoria {categoria.nome} desativada por estar em uso.", current_user.id, "CategoriaAtendimento", categoria.id)
+            db.session.commit()
+            flash("Categoria em uso. Ela foi desativada em vez de excluída.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+        nome = categoria.nome
+        db.session.delete(categoria)
+        registrar_auditoria("excluir_categoria", f"Categoria {nome} excluída.", current_user.id, "CategoriaAtendimento", id)
+        db.session.commit()
+        flash("Categoria excluída.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="atendimento"))
+
+    @app.post("/admin/configuracoes/personalizacao")
+    @admin_required
+    def admin_configuracoes_personalizacao_salvar():
+        sistema = obter_registro_unico(ConfiguracaoSistema)
+        home = obter_config_home()
+        sistema.nome_sistema = (request.form.get("nome_sistema") or "").strip() or "LG Contabilidade CRM"
+        campos_home = (
+            "hero_eyebrow",
+            "hero_titulo",
+            "hero_texto",
+            "hero_card_rotulo",
+            "hero_card_valor",
+            "servicos_eyebrow",
+            "servicos_titulo",
+            "servicos_texto",
+            "sobre_eyebrow",
+            "sobre_titulo",
+            "sobre_texto_1",
+            "sobre_texto_2",
+            "diferenciais_eyebrow",
+            "diferenciais_titulo",
+            "faq_eyebrow",
+            "faq_titulo",
+            "faq_texto",
+            "footer_titulo",
+            "footer_texto",
+            "footer_servicos_titulo",
+            "footer_servicos_texto",
+        )
+        for campo in campos_home:
+            valor = (request.form.get(campo) or "").strip()
+            setattr(home, campo, valor or HOME_DEFAULT.get(campo, ""))
+        salvar_itens_textarea("hero_stat", request.form.get("hero_stats"))
+        salvar_itens_textarea("servico", request.form.get("servicos"))
+        salvar_itens_textarea("sobre_pilar", request.form.get("sobre_pilares"))
+        salvar_itens_textarea("diferencial", request.form.get("diferenciais"))
+        salvar_itens_textarea("faq", request.form.get("faq"))
+        registrar_auditoria("editar_personalizacao", "Nome e conteudo da pagina inicial atualizados.", current_user.id, "ConfiguracaoSistema", sistema.id)
+        db.session.commit()
+        flash("Personalização salva.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="personalizacao"))
+
+    @app.post("/admin/configuracoes/personalizacao/padrao")
+    @admin_required
+    def admin_configuracoes_personalizacao_padrao():
+        sistema = obter_registro_unico(ConfiguracaoSistema)
+        home = obter_config_home()
+        restaurar_personalizacao_padrao(sistema)
+        restaurar_home_padrao(home)
+        registrar_auditoria("restaurar_personalizacao_padrao", "Nome e conteudo da pagina inicial retornaram ao padrao.", current_user.id, "ConfiguracaoSistema", sistema.id)
+        db.session.commit()
+        flash("Personalização restaurada para o padrão.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="personalizacao"))
+
+    @app.post("/admin/configuracoes/seguranca")
+    @admin_required
+    def admin_configuracoes_seguranca_salvar():
+        if atualizar_senha_usuario(
+            current_user,
+            request.form.get("senha_atual"),
+            request.form.get("nova_senha"),
+            request.form.get("confirmar_senha"),
+        ):
+            db.session.commit()
+            flash("Senha alterada com sucesso.", "sucesso")
+        else:
+            db.session.rollback()
+        return redirect(url_for("admin_configuracoes_secao", secao="seguranca"))
+
+    @app.post("/admin/configuracoes/privacidade/<int:id>/status")
+    @admin_required
+    def admin_privacidade_status(id):
+        solicitacao = SolicitacaoPrivacidade.query.get_or_404(id)
+        status = (request.form.get("status") or "").strip()
+        if status not in {"aberta", "em_analise", "negada", "concluida"}:
+            flash("Status de privacidade inválido.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="seguranca"))
+        solicitacao.status = status
+        registrar_auditoria("atualizar_privacidade", f"Solicitação de privacidade atualizada para {status}.", current_user.id, "SolicitacaoPrivacidade", solicitacao.id)
+        db.session.commit()
+        flash("Solicitação de privacidade atualizada.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="seguranca"))
+
+    @app.post("/admin/configuracoes/backup/gerar")
+    @admin_required
+    def admin_backup_gerar():
+        try:
+            nome, destino = gerar_backup_json()
+            registro = BackupRegistro(
+                nome_arquivo=nome,
+                caminho=str(destino),
+                tamanho_bytes=destino.stat().st_size,
+                status="concluido",
+                criado_por_id=current_user.id,
+            )
+            db.session.add(registro)
+            registrar_auditoria("gerar_backup", f"Backup {nome} gerado.", current_user.id, "BackupRegistro")
+            db.session.commit()
+            flash("Backup gerado com sucesso.", "sucesso")
+        except OSError:
+            db.session.rollback()
+            current_app.logger.exception("Falha ao gerar backup.")
+            flash("Não foi possível gerar o backup.", "erro")
+        return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+
+    @app.get("/admin/configuracoes/backup/<int:id>/baixar")
+    @admin_required
+    def admin_backup_baixar(id):
+        backup = BackupRegistro.query.get_or_404(id)
+        caminho = Path(backup.caminho).resolve()
+        raiz = caminho_backups().resolve()
+        if raiz not in caminho.parents or not caminho.exists():
+            flash("Arquivo de backup não encontrado.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+        registrar_auditoria("baixar_backup", f"Backup {backup.nome_arquivo} baixado.", current_user.id, "BackupRegistro", backup.id)
+        db.session.commit()
+        return send_file(caminho, as_attachment=True, download_name=backup.nome_arquivo)
+
+    @app.post("/admin/configuracoes/backup/<int:id>/excluir")
+    @admin_required
+    def admin_backup_excluir(id):
+        backup = BackupRegistro.query.get_or_404(id)
+        if not validar_senha_atual(current_user, request.form.get("senha_atual")):
+            return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+        caminho = Path(backup.caminho).resolve()
+        raiz = caminho_backups().resolve()
+        if raiz in caminho.parents and caminho.exists():
+            caminho.unlink()
+        nome = backup.nome_arquivo
+        db.session.delete(backup)
+        registrar_auditoria("excluir_backup", f"Backup {nome} excluído.", current_user.id, "BackupRegistro", id)
+        db.session.commit()
+        flash("Backup excluído.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+
+    @app.post("/admin/configuracoes/backup/<int:id>/restaurar")
+    @admin_required
+    def admin_backup_restaurar(id):
+        backup = BackupRegistro.query.get_or_404(id)
+        if not validar_senha_atual(current_user, request.form.get("senha_atual")):
+            return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+        if (request.form.get("confirmacao") or "").strip().upper() != "RESTAURAR":
+            flash("Digite RESTAURAR para confirmar a validação da restauração.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+        caminho = Path(backup.caminho).resolve()
+        raiz = caminho_backups().resolve()
+        if raiz not in caminho.parents or not caminho.exists():
+            flash("Arquivo de backup não encontrado.", "erro")
+            return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+        try:
+            dados = json.loads(caminho.read_text(encoding="utf-8"))
+            if dados.get("versao") != "lg-crm-1":
+                raise ValueError
+            nome_seguro, destino_seguro = gerar_backup_json()
+            db.session.add(
+                BackupRegistro(
+                    nome_arquivo=nome_seguro,
+                    caminho=str(destino_seguro),
+                    tamanho_bytes=destino_seguro.stat().st_size,
+                    status="concluido",
+                    criado_por_id=current_user.id,
+                )
+            )
+            registrar_auditoria("validar_restauracao_backup", f"Backup {backup.nome_arquivo} validado para restauração; backup de segurança {nome_seguro} criado.", current_user.id, "BackupRegistro", backup.id)
+            db.session.commit()
+            flash("Backup validado e backup de segurança criado. A aplicação automática dos dados deve ser feita em janela de manutenção.", "sucesso")
+        except (OSError, ValueError, json.JSONDecodeError):
+            db.session.rollback()
+            flash("O arquivo de backup não possui o formato esperado.", "erro")
+        return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+
+    @app.post("/admin/configuracoes/backup/limpar-temporarios")
+    @admin_required
+    def admin_backup_limpar_temporarios():
+        if not validar_senha_atual(current_user, request.form.get("senha_atual")):
+            return redirect(url_for("admin_configuracoes_secao", secao="backup"))
+        tmp = Path(current_app.instance_path) / "tmp"
+        if tmp.exists():
+            shutil.rmtree(tmp)
+        tmp.mkdir(parents=True, exist_ok=True)
+        registrar_auditoria("limpar_temporarios", "Arquivos temporários limpos.", current_user.id)
+        db.session.commit()
+        flash("Arquivos temporários limpos.", "sucesso")
+        return redirect(url_for("admin_configuracoes_secao", secao="backup"))
 
     @app.get("/admin/relatorios")
     @admin_required
@@ -1213,6 +1995,155 @@ def create_app():
             return redirect(url_for("cliente_perfil"))
 
         return render_template("cliente/perfil.html", cliente=cliente)
+
+    @app.get("/cliente/configuracoes")
+    @cliente_required
+    def cliente_configuracoes():
+        return redirect(url_for("cliente_configuracoes_secao", secao="conta"))
+
+    @app.get("/cliente/configuracoes/<secao>")
+    @cliente_required
+    def cliente_configuracoes_secao(secao):
+        if secao not in CLIENTE_CONFIG_SECOES:
+            flash("Seção de configurações inválida.", "erro")
+            return redirect(url_for("cliente_configuracoes"))
+        cliente = get_cliente_atual()
+        preferencias = obter_preferencias_notificacao(cliente)
+        acessos = HistoricoAcesso.query.filter_by(usuario_id=current_user.id).order_by(HistoricoAcesso.criado_em.desc()).limit(8).all()
+        privacidade = SolicitacaoPrivacidade.query.filter_by(cliente_id=cliente.id).order_by(SolicitacaoPrivacidade.criado_em.desc()).limit(8).all()
+        return render_template(
+            "cliente/configuracoes.html",
+            secao=secao,
+            secoes=CLIENTE_CONFIG_SECOES,
+            cliente=cliente,
+            preferencias=preferencias,
+            acessos=acessos,
+            privacidade=privacidade,
+        )
+
+    @app.post("/cliente/configuracoes/conta")
+    @cliente_required
+    def cliente_configuracoes_conta_salvar():
+        cliente = get_cliente_atual()
+        acao = request.form.get("acao")
+        if acao == "perfil":
+            nome = (request.form.get("nome") or "").strip()
+            telefone = (request.form.get("telefone") or "").strip()
+            if not nome:
+                flash("Informe seu nome.", "erro")
+                return redirect(url_for("cliente_configuracoes_secao", secao="conta"))
+            if not atualizar_email_unico(current_user, request.form.get("email")):
+                return redirect(url_for("cliente_configuracoes_secao", secao="conta"))
+            current_user.nome = nome
+            current_user.telefone = telefone or None
+            cliente.telefone = telefone or None
+            registrar_auditoria("editar_perfil_cliente", "Cliente atualizou a própria conta.", current_user.id, "Cliente", cliente.id)
+            db.session.commit()
+            flash("Conta atualizada com sucesso.", "sucesso")
+        elif acao == "senha":
+            if atualizar_senha_usuario(
+                current_user,
+                request.form.get("senha_atual"),
+                request.form.get("nova_senha"),
+                request.form.get("confirmar_senha"),
+            ):
+                db.session.commit()
+                flash("Senha alterada com sucesso.", "sucesso")
+            else:
+                db.session.rollback()
+        elif acao == "tema":
+            tema = (request.form.get("tema") or "").strip()
+            if tema not in {"claro", "escuro"}:
+                flash("Tema invalido.", "erro")
+                return redirect(url_for("cliente_configuracoes_secao", secao="conta"))
+            current_user.tema_preferido = tema
+            registrar_auditoria("alterar_tema_usuario", "Cliente alterou o tema da propria conta.", current_user.id, "Usuario", current_user.id)
+            db.session.commit()
+            flash("Tema da sua conta atualizado.", "sucesso")
+        return redirect(url_for("cliente_configuracoes_secao", secao="conta"))
+
+    @app.post("/cliente/configuracoes/dados")
+    @cliente_required
+    def cliente_configuracoes_dados_salvar():
+        cliente = get_cliente_atual()
+        cep = validar_cep(request.form.get("cep"))
+        estado = validar_estado(request.form.get("estado"))
+        email_comercial = validar_email(request.form.get("email_comercial")) if request.form.get("email_comercial") else None
+        if cep is False:
+            flash("Informe um CEP válido.", "erro")
+            return redirect(url_for("cliente_configuracoes_secao", secao="dados"))
+        if estado is False:
+            flash("Informe o estado com duas letras.", "erro")
+            return redirect(url_for("cliente_configuracoes_secao", secao="dados"))
+        if request.form.get("email_comercial") and not email_comercial:
+            flash("Informe um e-mail comercial válido.", "erro")
+            return redirect(url_for("cliente_configuracoes_secao", secao="dados"))
+        cliente.telefone = (request.form.get("telefone") or "").strip() or None
+        cliente.whatsapp = (request.form.get("whatsapp") or "").strip() or None
+        cliente.endereco = (request.form.get("endereco") or "").strip() or None
+        cliente.cep = cep or None
+        cliente.cidade = (request.form.get("cidade") or "").strip() or None
+        cliente.estado = estado or None
+        cliente.razao_social = (request.form.get("razao_social") or "").strip() or None
+        cliente.nome_fantasia = (request.form.get("nome_fantasia") or "").strip() or None
+        cliente.inscricao_estadual = (request.form.get("inscricao_estadual") or "").strip() or None
+        cliente.responsavel = (request.form.get("responsavel") or "").strip() or None
+        cliente.email_comercial = email_comercial
+        cliente.regime_tributario = (request.form.get("regime_tributario") or "").strip() or None
+        registrar_auditoria("editar_dados_cliente", "Cliente atualizou dados cadastrais próprios.", current_user.id, "Cliente", cliente.id)
+        db.session.commit()
+        flash("Dados atualizados com sucesso.", "sucesso")
+        return redirect(url_for("cliente_configuracoes_secao", secao="dados"))
+
+    @app.post("/cliente/configuracoes/notificacoes")
+    @cliente_required
+    def cliente_configuracoes_notificacoes_salvar():
+        cliente = get_cliente_atual()
+        preferencias = obter_preferencias_notificacao(cliente)
+        preferencias.avisos_email = request.form.get("avisos_email") == "on"
+        preferencias.atualizacoes_solicitacoes = request.form.get("atualizacoes_solicitacoes") == "on"
+        preferencias.novas_mensagens = request.form.get("novas_mensagens") == "on"
+        preferencias.lembretes_documentos = request.form.get("lembretes_documentos") == "on"
+        preferencias.comunicados_gerais = request.form.get("comunicados_gerais") == "on"
+        preferencias.mensagens_promocionais = request.form.get("mensagens_promocionais") == "on"
+        registrar_auditoria("editar_notificacoes", "Cliente atualizou preferências de notificação.", current_user.id, "Cliente", cliente.id)
+        db.session.commit()
+        flash("Preferências salvas.", "sucesso")
+        return redirect(url_for("cliente_configuracoes_secao", secao="notificacoes"))
+
+    @app.post("/cliente/configuracoes/seguranca")
+    @cliente_required
+    def cliente_configuracoes_seguranca_salvar():
+        if atualizar_senha_usuario(
+            current_user,
+            request.form.get("senha_atual"),
+            request.form.get("nova_senha"),
+            request.form.get("confirmar_senha"),
+        ):
+            db.session.commit()
+            flash("Senha alterada com sucesso.", "sucesso")
+        else:
+            db.session.rollback()
+        return redirect(url_for("cliente_configuracoes_secao", secao="seguranca"))
+
+    @app.post("/cliente/configuracoes/privacidade/solicitar")
+    @cliente_required
+    def cliente_privacidade_solicitar():
+        cliente = get_cliente_atual()
+        tipo = (request.form.get("tipo") or "").strip()
+        if tipo not in {"correcao", "exclusao", "anonimizacao", "copia_dados"}:
+            flash("Tipo de solicitação inválido.", "erro")
+            return redirect(url_for("cliente_configuracoes_secao", secao="privacidade"))
+        solicitacao = SolicitacaoPrivacidade(
+            cliente=cliente,
+            tipo=tipo,
+            mensagem=(request.form.get("mensagem") or "").strip() or None,
+        )
+        db.session.add(solicitacao)
+        registrar_auditoria("solicitar_privacidade", f"Solicitação de privacidade criada: {tipo}.", current_user.id, "Cliente", cliente.id)
+        db.session.commit()
+        flash("Solicitação registrada. A equipe vai analisar o pedido.", "sucesso")
+        return redirect(url_for("cliente_configuracoes_secao", secao="privacidade"))
 
     # Comando de terminal para criar o primeiro usuario administrador.
     @app.cli.command("criar-admin")

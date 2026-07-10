@@ -1,0 +1,158 @@
+{% extends "cliente/base_cliente.html" %}
+
+{% block title %}Configurações | Cliente{% endblock %}
+
+{% set labels = {
+  "conta": "Minha conta",
+  "dados": "Dados pessoais ou empresariais",
+  "notificacoes": "Notificações",
+  "seguranca": "Segurança",
+  "privacidade": "Privacidade"
+} %}
+
+{% block content %}
+<section class="panel-heading">
+  <span class="eyebrow">Sistema</span>
+  <h1>Configurações</h1>
+</section>
+
+<section class="settings-layout">
+  <nav class="settings-nav" aria-label="Seções de configurações">
+    {% for item in secoes %}
+      <a class="{{ 'active' if secao == item else '' }}" href="{{ url_for('cliente_configuracoes_secao', secao=item) }}">{{ labels[item] }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="settings-content">
+    {% if secao == "conta" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Minha conta</h2>
+          <p>Edite seus dados.</p>
+        </div>
+        <div class="settings-grid">
+          <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="acao" value="perfil">
+            <label>Nome<input name="nome" value="{{ current_user.nome }}" required></label>
+            <label>E-mail<input type="email" name="email" value="{{ current_user.email }}" required></label>
+            <label>Telefone<input type="tel" name="telefone" value="{{ cliente.telefone or current_user.telefone or '' }}"></label>
+            <button class="btn btn-primary" type="submit">Salvar conta</button>
+          </form>
+          <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="acao" value="senha">
+            <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
+            <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
+            <label>Confirmar nova senha<input type="password" name="confirmar_senha" minlength="8" autocomplete="new-password" required></label>
+            <button class="btn btn-primary" type="submit">Alterar senha</button>
+          </form>
+          <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="acao" value="tema">
+            <label>Tema
+              <select name="tema">
+                <option value="claro" {% if current_user.tema_preferido != 'escuro' %}selected{% endif %}>Claro</option>
+                <option value="escuro" {% if current_user.tema_preferido == 'escuro' %}selected{% endif %}>Escuro</option>
+              </select>
+            </label>
+            <button class="btn btn-primary" type="submit">Salvar tema</button>
+          </form>
+        </div>
+        <div class="settings-meta">
+          <span>Cadastrado em {{ cliente.criado_em.strftime("%d/%m/%Y") }}</span>
+          <span>Último acesso {{ current_user.ultimo_acesso.strftime("%d/%m/%Y %H:%M") if current_user.ultimo_acesso else "ainda não registrado" }}</span>
+        </div>
+      </section>
+    {% elif secao == "dados" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Dados pessoais ou empresariais</h2>
+          <p>CPF/CNPJ e tipo de conta ficam bloqueados para evitar alterações indevidas. Solicite correção ao escritório quando necessário.</p>
+        </div>
+        <form class="settings-card settings-form-wide" method="post" action="{{ url_for('cliente_configuracoes_dados_salvar') }}">
+          <label>Tipo de conta<input value="{{ cliente.tipo_cliente }}" readonly></label>
+          <label>CPF/CNPJ<input value="{{ cliente.cpf_cnpj or '' }}" readonly></label>
+          <label>Telefone<input name="telefone" value="{{ cliente.telefone or '' }}"></label>
+          <label>WhatsApp<input name="whatsapp" value="{{ cliente.whatsapp or '' }}"></label>
+          <label>Endereço<input name="endereco" value="{{ cliente.endereco or '' }}"></label>
+          <label>CEP<input name="cep" value="{{ cliente.cep or '' }}" placeholder="00000-000"></label>
+          <label>Cidade<input name="cidade" value="{{ cliente.cidade or '' }}"></label>
+          <label>Estado<input name="estado" maxlength="2" value="{{ cliente.estado or '' }}"></label>
+          {% if cliente.tipo_cliente in ["Empresa", "MEI"] %}
+            <label>Razão social<input name="razao_social" value="{{ cliente.razao_social or '' }}"></label>
+            <label>Nome fantasia<input name="nome_fantasia" value="{{ cliente.nome_fantasia or '' }}"></label>
+            <label>Inscrição estadual<input name="inscricao_estadual" value="{{ cliente.inscricao_estadual or '' }}"></label>
+            <label>Responsável<input name="responsavel" value="{{ cliente.responsavel or '' }}"></label>
+            <label>E-mail comercial<input type="email" name="email_comercial" value="{{ cliente.email_comercial or '' }}"></label>
+            <label>Regime tributário<input name="regime_tributario" value="{{ cliente.regime_tributario or '' }}"></label>
+          {% endif %}
+          <button class="btn btn-primary full-field" type="submit">Salvar dados</button>
+        </form>
+      </section>
+    {% elif secao == "notificacoes" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Notificações</h2>
+          <p>Comunicações essenciais de segurança continuam ativas mesmo que preferências opcionais sejam desligadas.</p>
+        </div>
+        <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_notificacoes_salvar') }}">
+          {% for campo, texto in [
+            ("avisos_email", "Avisos por e-mail"),
+            ("atualizacoes_solicitacoes", "Atualizações de solicitações"),
+            ("novas_mensagens", "Novas mensagens"),
+            ("lembretes_documentos", "Lembretes de documentos"),
+            ("comunicados_gerais", "Comunicados gerais"),
+            ("mensagens_promocionais", "Mensagens promocionais")
+          ] %}
+            <label class="settings-toggle"><input type="checkbox" name="{{ campo }}" {% if preferencias|attr(campo) %}checked{% endif %}>{{ texto }}</label>
+          {% endfor %}
+          <button class="btn btn-primary" type="submit">Salvar preferências</button>
+        </form>
+      </section>
+    {% elif secao == "seguranca" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Segurança</h2>
+          <p>Altere sua senha e acompanhe seus acessos recentes.</p>
+        </div>
+        <div class="settings-grid">
+          <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_seguranca_salvar') }}">
+            <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
+            <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
+            <label>Confirmar nova senha<input type="password" name="confirmar_senha" minlength="8" autocomplete="new-password" required></label>
+            <button class="btn btn-primary" type="submit">Alterar senha</button>
+          </form>
+          <section class="settings-card">
+            <h3>Acessos recentes</h3>
+            <div class="settings-table compact">
+              {% for acesso in acessos %}
+                <div class="settings-table-row"><span><strong>{{ acesso.criado_em.strftime("%d/%m/%Y %H:%M") }}</strong><small>{{ "sucesso" if acesso.sucesso else "falha" }}</small></span></div>
+              {% else %}<p>Nenhum acesso recente.</p>{% endfor %}
+            </div>
+          </section>
+        </div>
+      </section>
+    {% elif secao == "privacidade" %}
+      <section class="settings-section">
+        <div class="settings-section-header">
+          <h2>Privacidade</h2>
+          <p>Solicitações de correção, exclusão ou anonimização são analisadas por causa de obrigações legais e contábeis.</p>
+        </div>
+        <div class="settings-grid">
+          <form class="settings-card" method="post" action="{{ url_for('cliente_privacidade_solicitar') }}">
+            <label>Tipo de solicitação<select name="tipo" required><option value="copia_dados">Baixar cópia dos meus dados</option><option value="correcao">Solicitar correção</option><option value="exclusao">Solicitar exclusão da conta</option><option value="anonimizacao">Solicitar anonimização</option></select></label>
+            <label>Mensagem<textarea name="mensagem" placeholder="Explique o pedido"></textarea></label>
+            <button class="btn btn-primary" type="submit">Enviar solicitação</button>
+          </form>
+          <section class="settings-card">
+            <h3>Pedidos registrados</h3>
+            <div class="settings-table compact">
+              {% for item in privacidade %}
+                <div class="settings-table-row"><span><strong>{{ item.tipo|replace('_', ' ')|title }}</strong><small>{{ item.status }} · {{ item.criado_em.strftime("%d/%m/%Y") }}</small></span></div>
+              {% else %}<p>Nenhuma solicitação registrada.</p>{% endfor %}
+            </div>
+          </section>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Luciano Garcês Contabilidade e Perícias</title>
-  <meta name="description" content="Soluções contábeis, fiscais, trabalhistas e perícias para empresas, MEIs e profissionais autônomos.">
+  <title>{{ home.footer_titulo or "Luciano Garcês Contabilidade e Perícias" }}</title>
+  <meta name="description" content="{{ home.hero_texto }}">
   <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='assets/icone.jpeg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="{{ 'theme-escuro' if tema_usuario_atual == 'escuro' else 'theme-claro' }}">
   <!-- Cabeçalho fixo: reúne marca, navegação e ação principal. -->
   <header class="site-header" id="topo">
     <nav class="nav container" aria-label="Menu principal">
@@ -45,12 +45,9 @@
     <section class="hero" id="inicio">
       <div class="container hero-grid">
         <div class="hero-content">
-          <span class="eyebrow">Contabilidade, perícias e assessoria empresarial</span>
-          <h1>Soluções contábeis para empresas, MEIs e profissionais autônomos</h1>
-          <p>
-            Atuação com contabilidade, perícias, assessoria fiscal, trabalhista e empresarial,
-            sempre com organização, segurança e atendimento próximo.
-          </p>
+          <span class="eyebrow">{{ home.hero_eyebrow }}</span>
+          <h1>{{ home.hero_titulo }}</h1>
+          <p>{{ home.hero_texto }}</p>
 
           <div class="hero-actions">
             <a class="btn btn-primary" href="{{ url_for('solicitar_atendimento') }}">Solicitar Atendimento</a>
@@ -58,26 +55,20 @@
           </div>
 
           <div class="hero-stats" aria-label="Destaques da empresa">
-            <div>
-              <strong>12+</strong>
-              <span>serviços contábeis</span>
-            </div>
-            <div>
-              <strong>MEI</strong>
-              <span>empresas e autônomos</span>
-            </div>
-            <div>
-              <strong>IRPF</strong>
-              <span>declarações e suporte</span>
-            </div>
+            {% for item in hero_stats %}
+              <div>
+                <strong>{{ item.marcador or item.titulo }}</strong>
+                <span>{{ item.descricao }}</span>
+              </div>
+            {% endfor %}
           </div>
         </div>
 
         <div class="hero-visual" aria-label="Materiais de escritório contábil">
           <img src="{{ url_for('static', filename='assets/assethome.jpg') }}" alt="Arte institucional com serviços de contabilidade Luciano Garcês">
           <div class="visual-card">
-            <span>Atendimento direto</span>
-            <strong>(92) 99199-2520</strong>
+            <span>{{ home.hero_card_rotulo or "" }}</span>
+            <strong>{{ home.hero_card_valor or "" }}</strong>
           </div>
         </div>
       </div>
@@ -87,24 +78,15 @@
     <section class="section services" id="servicos">
       <div class="container">
         <div class="section-heading">
-          <span class="eyebrow">Serviços</span>
-          <h2>Suporte contábil completo para cada fase do seu negócio</h2>
-          <p>Da abertura ao acompanhamento fiscal, trabalhista e documental, com processos claros e orientação técnica.</p>
+          <span class="eyebrow">{{ home.servicos_eyebrow }}</span>
+          <h2>{{ home.servicos_titulo }}</h2>
+          <p>{{ home.servicos_texto }}</p>
         </div>
 
         <div class="cards-grid services-grid">
-          <article class="service-card"><span>01</span><h3>Abertura, legalização e baixa de empresa</h3><p>Formalização, regularização e encerramento com acompanhamento documental.</p></article>
-          <article class="service-card"><span>02</span><h3>Gestão tributária</h3><p>Organização de obrigações fiscais e orientação para melhor enquadramento.</p></article>
-          <article class="service-card"><span>03</span><h3>Assessoria trabalhista</h3><p>Rotinas de folha, admissões, rescisões e suporte nas relações trabalhistas.</p></article>
-          <article class="service-card"><span>04</span><h3>Assessoria contábil</h3><p>Escrituração, demonstrações e acompanhamento da saúde contábil da empresa.</p></article>
-          <article class="service-card"><span>05</span><h3>Perícia contábil</h3><p>Análises técnicas, cálculos e relatórios para demandas judiciais e extrajudiciais.</p></article>
-          <article class="service-card"><span>06</span><h3>Certificado digital</h3><p>Apoio na emissão e uso de certificado digital para empresas e profissionais.</p></article>
-          <article class="service-card"><span>07</span><h3>Serviços para MEI</h3><p>Regularização, declaração anual, orientação e acompanhamento para microempreendedores.</p></article>
-          <article class="service-card"><span>08</span><h3>Simples Nacional</h3><p>Apuração, obrigações e orientação para empresas optantes pelo regime simplificado.</p></article>
-          <article class="service-card"><span>09</span><h3>Licenciamentos</h3><p>Suporte para licenças e exigências necessárias ao funcionamento do negócio.</p></article>
-          <article class="service-card"><span>10</span><h3>Contratos</h3><p>Organização e apoio documental para relações comerciais e empresariais.</p></article>
-          <article class="service-card"><span>11</span><h3>Declaração de IRPF</h3><p>Preenchimento e conferência da declaração de imposto de renda pessoa física.</p></article>
-          <article class="service-card"><span>12</span><h3>DECORE</h3><p>Emissão de declaração comprobatória de rendimentos para profissionais autônomos.</p></article>
+          {% for item in servicos_home %}
+            <article class="service-card"><span>{{ item.marcador or "%02d"|format(loop.index) }}</span><h3>{{ item.titulo }}</h3><p>{{ item.descricao }}</p></article>
+          {% endfor %}
         </div>
       </div>
     </section>
@@ -112,23 +94,16 @@
     <section class="section about" id="sobre">
       <div class="container about-grid">
         <div class="about-panel">
-          <span class="eyebrow">Sobre</span>
-          <h2>Contabilidade com confiança, proximidade e responsabilidade técnica</h2>
-          <p>
-            A Luciano Garcês Contabilidade e Perícias oferece atendimento profissional para quem precisa
-            manter sua empresa regular, tomar decisões com mais segurança e resolver demandas contábeis
-            com clareza.
-          </p>
-          <p>
-            O trabalho é conduzido com atenção aos detalhes, organização documental e compromisso com
-            prazos, buscando entregar um suporte prático para empresas, MEIs e profissionais autônomos.
-          </p>
+          <span class="eyebrow">{{ home.sobre_eyebrow }}</span>
+          <h2>{{ home.sobre_titulo }}</h2>
+          {% if home.sobre_texto_1 %}<p>{{ home.sobre_texto_1 }}</p>{% endif %}
+          {% if home.sobre_texto_2 %}<p>{{ home.sobre_texto_2 }}</p>{% endif %}
         </div>
 
         <div class="about-list" aria-label="Pilares de atuação">
-          <div><strong>01</strong><span>Atendimento personalizado e orientação objetiva.</span></div>
-          <div><strong>02</strong><span>Rotinas organizadas para reduzir riscos e atrasos.</span></div>
-          <div><strong>03</strong><span>Suporte técnico para decisões fiscais e empresariais.</span></div>
+          {% for item in sobre_pilares %}
+            <div><strong>{{ item.marcador or item.titulo }}</strong><span>{{ item.descricao }}</span></div>
+          {% endfor %}
         </div>
       </div>
     </section>
@@ -136,16 +111,14 @@
     <section class="section differentials" id="diferenciais">
       <div class="container">
         <div class="section-heading">
-          <span class="eyebrow">Diferenciais</span>
-          <h2>Uma assessoria feita para trazer tranquilidade</h2>
+          <span class="eyebrow">{{ home.diferenciais_eyebrow }}</span>
+          <h2>{{ home.diferenciais_titulo }}</h2>
         </div>
 
         <div class="cards-grid differential-grid">
-          <article class="differential-card"><h3>Atendimento personalizado</h3><p>Contato próximo para entender a realidade de cada cliente.</p></article>
-          <article class="differential-card"><h3>Segurança nas informações</h3><p>Cuidado com documentos, dados fiscais e informações estratégicas.</p></article>
-          <article class="differential-card"><h3>Agilidade nos processos</h3><p>Fluxos organizados para acompanhar prazos e demandas importantes.</p></article>
-          <article class="differential-card"><h3>Experiência técnica</h3><p>Conhecimento contábil aplicado a rotinas, perícias e obrigações legais.</p></article>
-          <article class="differential-card"><h3>Suporte para empresas e autônomos</h3><p>Serviços adaptados a diferentes portes, regimes e necessidades.</p></article>
+          {% for item in diferenciais_home %}
+            <article class="differential-card"><h3>{{ item.titulo }}</h3><p>{{ item.descricao }}</p></article>
+          {% endfor %}
         </div>
       </div>
     </section>
@@ -153,18 +126,18 @@
     <section class="section faq" id="faq">
       <div class="container faq-grid">
         <div class="faq-intro">
-          <span class="eyebrow">Perguntas Frequentes</span>
-          <h2>Respostas rápidas para as dúvidas mais comuns</h2>
-          <p>Abra uma pergunta para ver a resposta. Se ainda precisar de orientação, solicite um atendimento personalizado.</p>
+          <span class="eyebrow">{{ home.faq_eyebrow }}</span>
+          <h2>{{ home.faq_titulo }}</h2>
+          <p>{{ home.faq_texto }}</p>
           <a class="btn btn-primary" href="{{ url_for('solicitar_atendimento') }}">Solicitar Atendimento</a>
         </div>
 
         <div class="faq-list">
           {% for item in faq_items %}
             <details class="faq-item">
-              <summary>{{ item.pergunta }}</summary>
+              <summary>{{ item.titulo }}</summary>
               <div class="faq-answer">
-                <p>{{ item.resposta }}</p>
+                <p>{{ item.descricao }}</p>
               </div>
             </details>
           {% endfor %}
@@ -179,13 +152,13 @@
       <div class="footer-brand">
         <img class="footer-logo" src="{{ url_for('static', filename='assets/logo.jpeg') }}" alt="Luciano Garcês Contabilidade e Perícias">
         <div>
-        <strong>Luciano Garcês Contabilidade e Perícias</strong>
-        <p>Contabilidade, perícias, assessoria fiscal, trabalhista e empresarial.</p>
+        <strong>{{ home.footer_titulo }}</strong>
+        <p>{{ home.footer_texto }}</p>
         </div>
       </div>
       <div>
-        <span>Serviços principais</span>
-        <p>Abertura de empresa, Simples Nacional, MEI, IRPF, DECORE e perícia contábil.</p>
+        <span>{{ home.footer_servicos_titulo }}</span>
+        <p>{{ home.footer_servicos_texto }}</p>
       </div>
     </div>
     <p class="copyright">© <span id="year"></span> Luciano Garcês Contabilidade e Perícias. Todos os direitos reservados.</p>
