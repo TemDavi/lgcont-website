@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import Config
-from email_service import EmailDeliveryError, enviar_email_ativacao
+from email_service import EmailDeliveryError, enviar_email_ativacao, enviar_email_reset_senha
 from models import (
     STATUS_PENDENCIA,
     STATUS_SERVICO,
@@ -767,6 +767,47 @@ def create_app():
             status_servico=STATUS_SERVICO,
             status_pendencia=STATUS_PENDENCIA,
         )
+
+    @app.post("/admin/clientes/<int:id>/resetar-senha")
+    @admin_required
+    def admin_cliente_resetar_senha(id):
+        cliente = Cliente.query.get_or_404(id)
+        usuario = cliente.usuario
+
+        if usuario.tipo != "cliente":
+            flash("Apenas senhas de clientes podem ser redefinidas por esta tela.", "erro")
+            return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
+
+        senha_inutilizavel = secrets.token_urlsafe(32)
+        usuario.senha_hash = generate_password_hash(senha_inutilizavel)
+        usuario.precisa_definir_senha = True
+        usuario.senha_temporaria = None
+
+        try:
+            db.session.flush()
+            registrar_atividade(
+                "cliente",
+                f"Redefinição de senha solicitada para {usuario.nome}.",
+                current_user.id,
+                cliente.id,
+            )
+            token = gerar_token_ativacao(usuario)
+            link = current_app.config["PUBLIC_BASE_URL"] + url_for("ativar_conta", token=token)
+            enviar_email_reset_senha(usuario.email, usuario.nome, link)
+            db.session.commit()
+        except EmailDeliveryError as erro:
+            db.session.rollback()
+            current_app.logger.exception("Falha ao enviar o e-mail de redefinição de senha.")
+            flash(f"A senha não foi redefinida: {erro}", "erro")
+            return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
+        except SQLAlchemyError:
+            db.session.rollback()
+            current_app.logger.exception("Falha ao redefinir a senha do cliente.")
+            flash("Não foi possível redefinir a senha agora. Tente novamente.", "erro")
+            return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
+
+        flash("Senha antiga invalidada. O e-mail para criação da nova senha foi enviado.", "sucesso")
+        return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
 
     @app.get("/admin/clientes/<int:id>/remover")
     @admin_required

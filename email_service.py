@@ -84,6 +84,30 @@ def enviar_email_ativacao(destinatario, nome, link_ativacao):
     )
 
 
+def enviar_email_reset_senha(destinatario, nome, link_reset):
+    """Envia o e-mail para o cliente cadastrar uma nova senha."""
+    config = current_app.config
+    horas_expiracao = config["ACTIVATION_TOKEN_HOURS"]
+    nome_empresa = config.get("COMPANY_NAME", "LG Contabilidade")
+    texto_simples = (
+        f"Olá, {nome or 'cliente'}!\n\n"
+        f"Um administrador da {nome_empresa} solicitou a redefinição da sua senha. "
+        "Cadastre uma nova senha acessando o link abaixo:\n\n"
+        f"{link_reset}\n\n"
+        f"Este link expira em {horas_expiracao} horas.\n"
+        "Se você não esperava esta mensagem, entre em contato com o suporte."
+    )
+    return send_template_email(
+        destinatario=destinatario,
+        assunto="Redefina sua senha | LG Contabilidade",
+        template_name="emails/reset_password.html",
+        texto_simples=texto_simples,
+        nome=nome,
+        link_reset=link_reset,
+        horas_expiracao=horas_expiracao,
+    )
+
+
 def _autenticar_e_enviar(servidor, mensagem, config):
     usuario = config.get("MAIL_USERNAME")
     senha = config.get("MAIL_PASSWORD")

@@ -18,8 +18,8 @@
     <p><strong>Telefone:</strong> {{ cliente.telefone or "-" }}</p>
     <p><strong>CPF/CNPJ:</strong> {{ cliente.cpf_cnpj or "-" }}</p>
     <p><strong>Endereço:</strong> {{ cliente.endereco or "-" }}</p>
-    {% if cliente.usuario.precisa_definir_senha and cliente.usuario.senha_temporaria %}
-      <p><strong>Senha temporaria:</strong> {{ cliente.usuario.senha_temporaria }}</p>
+    {% if cliente.usuario.precisa_definir_senha %}
+      <p><strong>Acesso:</strong> aguardando o cliente definir uma nova senha.</p>
     {% endif %}
   </article>
 
@@ -86,6 +86,16 @@
   {% else %}
     <p>Nenhuma pendência cadastrada.</p>
   {% endfor %}
+</section>
+
+<section class="access-zone">
+  <div>
+    <h2>Acesso do cliente</h2>
+    <p>Envia um novo link para o cliente cadastrar uma nova senha.</p>
+  </div>
+  <form method="post" action="{{ url_for('admin_cliente_resetar_senha', id=cliente.id) }}">
+    <button class="btn btn-primary" type="submit">Resetar senha e enviar e-mail</button>
+  </form>
 </section>
 
 <section class="danger-zone">
