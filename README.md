@@ -21,6 +21,7 @@ Desenvolvido com **Python** utilizando o framework **Flask** no backend. O siste
 * 💬 Sistema de atendimento por mensagens diretamente no site;
 * 📱 Redirecionamento rápido para atendimento via WhatsApp;
 * 📲 Interface responsiva para computadores, tablets e dispositivos móveis.
+* 🌒 Modo escuro
 
 ## 🛠 Tecnologias
 
@@ -85,17 +86,3 @@ Acesse:
 ```text
 http://127.0.0.1:5000
 ```
-
-## Configurações do CRM
-
-- Administrador: acesse `/admin/configuracoes` para editar conta, dados da empresa, atendimento, personalização, segurança e backup.
-- Cliente: acesse `/cliente/configuracoes` para editar a própria conta, dados cadastrais, notificações, segurança e privacidade.
-- O projeto não usa migrations formais nesta fase. Novas tabelas são criadas por `db.create_all()` e colunas novas são adicionadas por `atualizar_schema_simples()` em `app.py`.
-- Backups manuais são gerados fora de `static`, na pasta `instance/backups`, e só podem ser baixados por administrador autenticado.
-- Para rodar os testes adicionados:
-
-```powershell
-python -m unittest tests.test_configuracoes
-```
-
-Antes de publicar em produção, configure `FLASK_SECRET_KEY`, banco MySQL, SMTP e `PUBLIC_BASE_URL` no ambiente, use HTTPS e revise permissões da pasta `instance/backups`.
