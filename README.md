@@ -1,6 +1,7 @@
 <p align="center">
   <img src="static/assets/WebSite.png" alt="LG Contabilidade" width="100%">
 </p>
+
 # Luciano Garces Contabilidade e Pericias
 
 Meu primeiro projeto Web.
