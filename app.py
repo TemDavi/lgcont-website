@@ -477,7 +477,9 @@ def get_cliente_atual():
 
 def contar_mensagens_nao_lidas(cliente_id=None):
     consulta = Mensagem.query.join(Conversa).filter(
-        Mensagem.lida.is_(False), Mensagem.usuario_id != current_user.id
+        Mensagem.lida.is_(False),
+        Mensagem.usuario_id != current_user.id,
+        Mensagem.excluida_em.is_(None),
     )
     if cliente_id is not None:
         consulta = consulta.filter(Conversa.cliente_id == cliente_id)
@@ -489,6 +491,7 @@ def marcar_mensagens_como_lidas(conversa):
         Mensagem.conversa_id == conversa.id,
         Mensagem.usuario_id != current_user.id,
         Mensagem.lida.is_(False),
+        Mensagem.excluida_em.is_(None),
     ).update({Mensagem.lida: True}, synchronize_session=False)
     if alteradas:
         db.session.commit()
@@ -538,6 +541,7 @@ def atualizar_schema_simples():
 
     colunas_usuario = {coluna["name"] for coluna in inspector.get_columns("usuarios")}
     colunas_cliente = {coluna["name"] for coluna in inspector.get_columns("clientes")} if "clientes" in inspector.get_table_names() else set()
+    colunas_mensagem = {coluna["name"] for coluna in inspector.get_columns("mensagens")} if "mensagens" in inspector.get_table_names() else set()
     comandos = []
 
     for nome, definicao in {
@@ -568,6 +572,13 @@ def atualizar_schema_simples():
         if nome not in colunas_cliente:
             comandos.append(f"ALTER TABLE clientes ADD COLUMN {nome} {definicao}")
 
+    for nome, definicao in {
+        "editada_em": "DATETIME NULL",
+        "excluida_em": "DATETIME NULL",
+    }.items():
+        if nome not in colunas_mensagem:
+            comandos.append(f"ALTER TABLE mensagens ADD COLUMN {nome} {definicao}")
+
     for comando in comandos:
         db.session.execute(text(comando))
     if comandos:
@@ -584,6 +595,59 @@ def inicializar_configuracoes_padrao():
             db.session.add(CategoriaAtendimento(nome=nome))
     garantir_itens_home_padrao()
     db.session.commit()
+
+
+def obter_mensagem_da_conversa(conversa, mensagem_id):
+    mensagem = Mensagem.query.filter_by(
+        id=mensagem_id,
+        conversa_id=conversa.id,
+        usuario_id=current_user.id,
+    ).first_or_404()
+    if mensagem.excluida_em:
+        flash("Esta mensagem ja foi apagada.", "erro")
+        return None
+    return mensagem
+
+
+def atualizar_mensagem(conversa, mensagem_id):
+    if conversa.status == "fechada":
+        flash("Esta conversa esta fechada.", "erro")
+        return
+    mensagem = obter_mensagem_da_conversa(conversa, mensagem_id)
+    if not mensagem:
+        return
+    texto_mensagem, erro = validar_texto_mensagem()
+    if erro:
+        flash(erro, "erro")
+        return
+    mensagem.texto = texto_mensagem
+    mensagem.editada_em = datetime.utcnow()
+    conversa.atualizado_em = datetime.utcnow()
+    registrar_atividade(
+        "mensagem",
+        f"Mensagem editada na conversa {conversa.assunto}.",
+        current_user.id,
+        conversa.cliente_id,
+    )
+    db.session.commit()
+    flash("Mensagem editada.", "sucesso")
+
+
+def apagar_mensagem(conversa, mensagem_id):
+    mensagem = obter_mensagem_da_conversa(conversa, mensagem_id)
+    if not mensagem:
+        return
+    mensagem.excluida_em = datetime.utcnow()
+    mensagem.lida = True
+    conversa.atualizado_em = datetime.utcnow()
+    registrar_atividade(
+        "mensagem",
+        f"Mensagem apagada na conversa {conversa.assunto}.",
+        current_user.id,
+        conversa.cliente_id,
+    )
+    db.session.commit()
+    flash("Mensagem apagada.", "sucesso")
 
 
 def obter_lastmod(*caminhos_relativos):
@@ -1365,6 +1429,7 @@ def create_app():
                 Mensagem.conversa_id == conversa.id,
                 Mensagem.usuario_id != current_user.id,
                 Mensagem.lida.is_(False),
+                Mensagem.excluida_em.is_(None),
             ).count()
             for conversa in conversas
         }
@@ -1389,6 +1454,20 @@ def create_app():
             flash(erro, "erro")
         else:
             enviar_mensagem(conversa, texto_mensagem)
+        return redirect(url_for("admin_conversa", conversa_id=conversa.id))
+
+    @app.post("/admin/mensagens/<int:conversa_id>/mensagens/<int:mensagem_id>/editar")
+    @admin_required
+    def admin_mensagem_editar(conversa_id, mensagem_id):
+        conversa = Conversa.query.get_or_404(conversa_id)
+        atualizar_mensagem(conversa, mensagem_id)
+        return redirect(url_for("admin_conversa", conversa_id=conversa.id))
+
+    @app.post("/admin/mensagens/<int:conversa_id>/mensagens/<int:mensagem_id>/apagar")
+    @admin_required
+    def admin_mensagem_apagar(conversa_id, mensagem_id):
+        conversa = Conversa.query.get_or_404(conversa_id)
+        apagar_mensagem(conversa, mensagem_id)
         return redirect(url_for("admin_conversa", conversa_id=conversa.id))
 
     @app.post("/admin/mensagens/<int:conversa_id>/fechar")
@@ -1894,6 +1973,7 @@ def create_app():
                 Mensagem.conversa_id == conversa.id,
                 Mensagem.usuario_id != current_user.id,
                 Mensagem.lida.is_(False),
+                Mensagem.excluida_em.is_(None),
             ).count()
             for conversa in conversas
         }
@@ -1920,6 +2000,22 @@ def create_app():
             flash(erro, "erro")
         else:
             enviar_mensagem(conversa, texto_mensagem)
+        return redirect(url_for("cliente_conversa", conversa_id=conversa.id))
+
+    @app.post("/cliente/mensagens/<int:conversa_id>/mensagens/<int:mensagem_id>/editar")
+    @cliente_required
+    def cliente_mensagem_editar(conversa_id, mensagem_id):
+        cliente = get_cliente_atual()
+        conversa = Conversa.query.filter_by(id=conversa_id, cliente_id=cliente.id).first_or_404()
+        atualizar_mensagem(conversa, mensagem_id)
+        return redirect(url_for("cliente_conversa", conversa_id=conversa.id))
+
+    @app.post("/cliente/mensagens/<int:conversa_id>/mensagens/<int:mensagem_id>/apagar")
+    @cliente_required
+    def cliente_mensagem_apagar(conversa_id, mensagem_id):
+        cliente = get_cliente_atual()
+        conversa = Conversa.query.filter_by(id=conversa_id, cliente_id=cliente.id).first_or_404()
+        apagar_mensagem(conversa, mensagem_id)
         return redirect(url_for("cliente_conversa", conversa_id=conversa.id))
 
     @app.route("/cliente/mensagens/nova", methods=["GET", "POST"])

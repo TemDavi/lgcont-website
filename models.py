@@ -173,7 +173,8 @@ class Conversa(db.Model):
 
     @property
     def ultima_mensagem(self):
-        return self.mensagens[-1] if self.mensagens else None
+        mensagens_visiveis = [mensagem for mensagem in self.mensagens if not mensagem.excluida_em]
+        return mensagens_visiveis[-1] if mensagens_visiveis else None
 
 
 class Mensagem(db.Model):
@@ -185,6 +186,8 @@ class Mensagem(db.Model):
     texto = db.Column(db.Text, nullable=False)
     lida = db.Column(db.Boolean, nullable=False, default=False, index=True)
     criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    editada_em = db.Column(db.DateTime, nullable=True)
+    excluida_em = db.Column(db.DateTime, nullable=True, index=True)
 
     conversa = db.relationship("Conversa", back_populates="mensagens")
     usuario = db.relationship("Usuario", back_populates="mensagens")
