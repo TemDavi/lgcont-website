@@ -32,6 +32,7 @@
         </div>
         <div class="settings-grid">
           <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="acao" value="perfil">
             <label>Nome<input name="nome" value="{{ current_user.nome }}" required></label>
             <label>E-mail<input type="email" name="email" value="{{ current_user.email }}" required></label>
@@ -39,6 +40,7 @@
             <button class="btn btn-primary" type="submit">Salvar conta</button>
           </form>
           <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="acao" value="senha">
             <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
             <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
@@ -46,6 +48,7 @@
             <button class="btn btn-primary" type="submit">Alterar senha</button>
           </form>
           <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="acao" value="tema">
             <label>Tema
               <select name="tema">
@@ -68,6 +71,7 @@
           <p>CPF/CNPJ e tipo de conta ficam bloqueados para evitar alterações indevidas. Solicite correção ao escritório quando necessário.</p>
         </div>
         <form class="settings-card settings-form-wide" method="post" action="{{ url_for('cliente_configuracoes_dados_salvar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label>Tipo de conta<input value="{{ cliente.tipo_cliente }}" readonly></label>
           <label>CPF/CNPJ<input value="{{ cliente.cpf_cnpj or '' }}" readonly></label>
           <label>Telefone<input name="telefone" value="{{ cliente.telefone or '' }}"></label>
@@ -94,6 +98,7 @@
           <p>Comunicações essenciais de segurança continuam ativas mesmo que preferências opcionais sejam desligadas.</p>
         </div>
         <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_notificacoes_salvar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           {% for campo, texto in [
             ("avisos_email", "Avisos por e-mail"),
             ("atualizacoes_solicitacoes", "Atualizações de solicitações"),
@@ -115,6 +120,7 @@
         </div>
         <div class="settings-grid">
           <form class="settings-card" method="post" action="{{ url_for('cliente_configuracoes_seguranca_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
             <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
             <label>Confirmar nova senha<input type="password" name="confirmar_senha" minlength="8" autocomplete="new-password" required></label>
@@ -138,6 +144,7 @@
         </div>
         <div class="settings-grid">
           <form class="settings-card" method="post" action="{{ url_for('cliente_privacidade_solicitar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label>Tipo de solicitação<select name="tipo" required><option value="copia_dados">Baixar cópia dos meus dados</option><option value="correcao">Solicitar correção</option><option value="exclusao">Solicitar exclusão da conta</option><option value="anonimizacao">Solicitar anonimização</option></select></label>
             <label>Mensagem<textarea name="mensagem" placeholder="Explique o pedido"></textarea></label>
             <button class="btn btn-primary" type="submit">Enviar solicitação</button>

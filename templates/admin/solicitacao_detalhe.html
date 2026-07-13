@@ -43,6 +43,7 @@
 <section class="list-panel">
   <h2>Atualização interna</h2>
   <form class="panel-form" method="post" action="{{ url_for('admin_solicitacao_status', id=solicitacao.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>
       Status
       <select name="status" required>
@@ -63,10 +64,12 @@
 
 <section class="panel-actions">
   <form method="post" action="{{ url_for('admin_solicitacao_aprovar', id=solicitacao.id) }}" onsubmit="this.querySelector('button').disabled = true;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="observacao_admin" value="{{ solicitacao.observacao_admin or '' }}">
     <button class="btn btn-primary" type="submit" {% if solicitacao.status == "convertida_cliente" %}disabled{% endif %}>Aprovar e criar cliente</button>
   </form>
   <form method="post" action="{{ url_for('admin_solicitacao_rejeitar', id=solicitacao.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="observacao_admin" value="{{ solicitacao.observacao_admin or '' }}">
     <button class="btn btn-secondary app-secondary" type="submit" {% if solicitacao.status == "convertida_cliente" %}disabled{% endif %}>Rejeitar solicitação</button>
   </form>

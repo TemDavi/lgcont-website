@@ -13,6 +13,7 @@
 </section>
 
 <form class="panel-form wide-form" method="post" action="{{ url_for('admin_cliente_novo') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>
     Nome
     <input type="text" name="nome" required>

@@ -27,6 +27,7 @@
           <td>{{ pendencia.criado_em.strftime("%d/%m/%Y %H:%M") }}</td>
           <td>
             <form class="table-status-form" method="post" action="{{ url_for('admin_pendencia_status', id=pendencia.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="origem" value="admin_pendencias">
               <select name="status">
                 {% for status in status_pendencia %}

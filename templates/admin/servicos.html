@@ -27,6 +27,7 @@
           <td>{{ servico.atualizado_em.strftime("%d/%m/%Y %H:%M") }}</td>
           <td>
             <form class="table-status-form" method="post" action="{{ url_for('admin_servico_status', id=servico.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="origem" value="admin_servicos">
               <select name="status">
                 {% for status in status_servico %}

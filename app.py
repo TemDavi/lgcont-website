@@ -14,6 +14,7 @@ import os
 import click
 from flask import Flask, Response, current_app, flash, redirect, render_template, request, send_file, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from flask_wtf.csrf import CSRFProtect
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -435,6 +436,7 @@ login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.login_message = "Faça login para acessar esta página."
 login_manager.login_message_category = "erro"
+csrf = CSRFProtect()
 
 
 @login_manager.user_loader
@@ -762,6 +764,7 @@ def create_app():
     app.config.from_object(Config)
     db.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
 
     with app.app_context():
         # Nesta etapa inicial, o create_all facilita criar as novas tabelas.
@@ -1293,6 +1296,8 @@ def create_app():
                 )
             Mensagem.query.filter(filtro_mensagens).delete(synchronize_session=False)
             Conversa.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
+            SolicitacaoPrivacidade.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
+            PreferenciaNotificacao.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
             Agendamento.query.filter_by(cliente_id=cliente.id).delete(synchronize_session=False)
             Atividade.query.filter(
                 or_(Atividade.cliente_id == cliente.id, Atividade.usuario_id == usuario.id)
@@ -1302,6 +1307,18 @@ def create_app():
             SolicitacaoAtendimento.query.filter(
                 func.lower(func.trim(SolicitacaoAtendimento.email)) == email_cliente
             ).delete(synchronize_session=False)
+            HistoricoAcesso.query.filter(
+                or_(
+                    HistoricoAcesso.usuario_id == usuario.id,
+                    func.lower(func.trim(HistoricoAcesso.email_informado)) == email_cliente,
+                )
+            ).delete(synchronize_session=False)
+            LogAuditoria.query.filter_by(usuario_id=usuario.id).update(
+                {LogAuditoria.usuario_id: None}, synchronize_session=False
+            )
+            BackupRegistro.query.filter_by(criado_por_id=usuario.id).update(
+                {BackupRegistro.criado_por_id: None}, synchronize_session=False
+            )
 
             db.session.delete(cliente)
             db.session.delete(usuario)

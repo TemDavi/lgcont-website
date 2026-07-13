@@ -33,6 +33,7 @@
         </div>
         <div class="settings-grid">
           <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="acao" value="perfil">
             <label>Nome de exibição<input name="nome" value="{{ current_user.nome }}" required></label>
             <label>E-mail<input type="email" name="email" value="{{ current_user.email }}" required></label>
@@ -42,6 +43,7 @@
           </form>
 
           <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="acao" value="senha">
             <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
             <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
@@ -50,6 +52,7 @@
           </form>
 
           <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_conta_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="acao" value="tema">
             <label>Tema
               <select name="tema">
@@ -72,6 +75,7 @@
           <p>Essas informações ficam centralizadas para uso futuro em e-mails, documentos e cabeçalhos do CRM.</p>
         </div>
         <form class="settings-card settings-form-wide" method="post" enctype="multipart/form-data" action="{{ url_for('admin_configuracoes_empresa_salvar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label>Nome da empresa<input name="nome_empresa" value="{{ empresa.nome_empresa or '' }}" required></label>
           <label>Razão social<input name="razao_social" value="{{ empresa.razao_social or '' }}"></label>
           <label>Nome fantasia<input name="nome_fantasia" value="{{ empresa.nome_fantasia or '' }}"></label>
@@ -107,9 +111,11 @@
           <p>Configure o funcionamento das solicitações sem alterar o histórico já existente.</p>
         </div>
         <form class="settings-reset" method="post" action="{{ url_for('admin_configuracoes_atendimento_padrao') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn app-secondary" type="submit">Retornar ao padrão</button>
         </form>
         <form class="settings-card settings-form-wide" method="post" action="{{ url_for('admin_configuracoes_atendimento_salvar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label>Prioridade padrão<select name="prioridade_padrao">{% for item in prioridades %}<option value="{{ item }}" {% if atendimento.prioridade_padrao == item %}selected{% endif %}>{{ item|title }}</option>{% endfor %}</select></label>
           <label>Prazo de resposta em horas<input type="number" min="1" name="prazo_resposta_horas" value="{{ atendimento.prazo_resposta_horas }}"></label>
           <label>Permitir anexos<select name="permitir_anexos"><option value="">Não</option><option value="on" {% if atendimento.permitir_anexos %}selected{% endif %}>Sim</option></select></label>
@@ -124,6 +130,7 @@
         <section class="settings-card">
           <h3>Categorias</h3>
           <form class="settings-inline-form" method="post" action="{{ url_for('admin_categoria_atendimento_salvar') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input name="nome" placeholder="Nova categoria">
             <button class="btn btn-primary" type="submit">Adicionar</button>
           </form>
@@ -131,8 +138,8 @@
             {% for categoria in categorias %}
               <div class="settings-table-row">
                 <span><strong>{{ categoria.nome }}</strong><small>{{ "Ativa" if categoria.ativa else "Inativa" }}</small></span>
-                <form method="post" action="{{ url_for('admin_categoria_atendimento_alternar', id=categoria.id) }}"><button class="btn btn-small app-secondary" type="submit">{{ "Desativar" if categoria.ativa else "Ativar" }}</button></form>
-                <form method="post" action="{{ url_for('admin_categoria_atendimento_excluir', id=categoria.id) }}"><input name="confirmacao" placeholder="EXCLUIR"><button class="btn btn-small app-secondary" type="submit">Excluir</button></form>
+                <form method="post" action="{{ url_for('admin_categoria_atendimento_alternar', id=categoria.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-small app-secondary" type="submit">{{ "Desativar" if categoria.ativa else "Ativar" }}</button></form>
+                <form method="post" action="{{ url_for('admin_categoria_atendimento_excluir', id=categoria.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input name="confirmacao" placeholder="EXCLUIR"><button class="btn btn-small app-secondary" type="submit">Excluir</button></form>
               </div>
             {% else %}
               <p>Nenhuma categoria cadastrada.</p>
@@ -147,6 +154,7 @@
           <p>Defina o nome do sistema e o conteúdo exibido na página principal.</p>
         </div>
         <form class="settings-card settings-form-wide home-editor" method="post" action="{{ url_for('admin_configuracoes_personalizacao_salvar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label>Nome exibido do sistema<input name="nome_sistema" value="{{ sistema.nome_sistema }}" required></label>
           <div class="settings-subtitle full-field"><h3>Topo da página</h3></div>
           <label>Chamada pequena<input name="hero_eyebrow" value="{{ home.hero_eyebrow }}"></label>
@@ -189,6 +197,7 @@
           <button class="btn btn-primary full-field" type="submit">Salvar personalização</button>
         </form>
         <form class="settings-reset" method="post" action="{{ url_for('admin_configuracoes_personalizacao_padrao') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn app-secondary" type="submit">Retornar ao padrão</button>
         </form>
       </section>
@@ -199,6 +208,7 @@
           <p>Histórico administrativo e alteração de senha. Tentativas de login são registradas sem senhas ou tokens.</p>
         </div>
         <form class="settings-card" method="post" action="{{ url_for('admin_configuracoes_seguranca_salvar') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <label>Senha atual<input type="password" name="senha_atual" autocomplete="current-password" required></label>
           <label>Nova senha<input type="password" name="nova_senha" minlength="8" autocomplete="new-password" required></label>
           <label>Confirmar nova senha<input type="password" name="confirmar_senha" minlength="8" autocomplete="new-password" required></label>
@@ -229,6 +239,7 @@
               <div class="settings-table-row">
                 <span><strong>{{ pedido.cliente.usuario.nome }}</strong><small>{{ pedido.tipo|replace('_', ' ')|title }} · {{ pedido.status }} · {{ pedido.criado_em.strftime("%d/%m/%Y") }}</small></span>
                 <form method="post" action="{{ url_for('admin_privacidade_status', id=pedido.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <select name="status">
                     {% for status in ["aberta", "em_analise", "negada", "concluida"] %}
                       <option value="{{ status }}" {% if pedido.status == status %}selected{% endif %}>{{ status|replace('_', ' ')|title }}</option>
@@ -255,11 +266,12 @@
             <p><strong>Status:</strong> {{ ultimo_backup.status if ultimo_backup else "-" }}</p>
             <p><strong>Ambiente:</strong> Flask / SQLAlchemy</p>
             <p><strong>Banco:</strong> conectado</p>
-            <form method="post" action="{{ url_for('admin_backup_gerar') }}"><button class="btn btn-primary" type="submit">Gerar backup manual</button></form>
+            <form method="post" action="{{ url_for('admin_backup_gerar') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit">Gerar backup manual</button></form>
           </section>
           <section class="settings-card alert-card">
             <h3>Manutenção sensível</h3>
             <form class="compact-form" method="post" action="{{ url_for('admin_backup_limpar_temporarios') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <label>Senha do administrador<input type="password" name="senha_atual" required></label>
               <button class="btn app-secondary" type="submit">Limpar temporários</button>
             </form>
@@ -272,8 +284,8 @@
               <div class="settings-table-row">
                 <span><strong>{{ backup.nome_arquivo }}</strong><small>{{ backup.criado_em.strftime("%d/%m/%Y %H:%M") }} · {{ backup.tamanho_bytes }} bytes</small></span>
                 <a class="btn btn-small app-secondary" href="{{ url_for('admin_backup_baixar', id=backup.id) }}">Baixar</a>
-                <form method="post" action="{{ url_for('admin_backup_excluir', id=backup.id) }}"><input type="password" name="senha_atual" placeholder="Senha" required><button class="btn btn-small app-secondary" type="submit">Excluir</button></form>
-                <form method="post" action="{{ url_for('admin_backup_restaurar', id=backup.id) }}"><input type="password" name="senha_atual" placeholder="Senha" required><input name="confirmacao" placeholder="RESTAURAR" required><button class="btn btn-small app-secondary" type="submit">Validar restauração</button></form>
+                <form method="post" action="{{ url_for('admin_backup_excluir', id=backup.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="password" name="senha_atual" placeholder="Senha" required><button class="btn btn-small app-secondary" type="submit">Excluir</button></form>
+                <form method="post" action="{{ url_for('admin_backup_restaurar', id=backup.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="password" name="senha_atual" placeholder="Senha" required><input name="confirmacao" placeholder="RESTAURAR" required><button class="btn btn-small app-secondary" type="submit">Validar restauração</button></form>
               </div>
             {% else %}<p>Nenhum backup gerado.</p>{% endfor %}
           </div>
