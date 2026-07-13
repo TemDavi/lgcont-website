@@ -56,7 +56,7 @@ class Usuario(UserMixin, db.Model):
     ultimo_acesso = db.Column(db.DateTime, nullable=True)
     tema_preferido = db.Column(db.String(20), nullable=False, default="claro")
     precisa_definir_senha = db.Column(db.Boolean, nullable=False, default=False)
-    senha_temporaria = db.Column(db.String(80), nullable=True)
+    senha_temporaria = db.Column(db.String(255), nullable=True)
     criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     cliente = db.relationship("Cliente", back_populates="usuario", uselist=False)

@@ -39,3 +39,6 @@ class Config:
     MAIL_TIMEOUT = int(os.getenv("MAIL_TIMEOUT", "15"))
     PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
     ACTIVATION_TOKEN_HOURS = int(os.getenv("ACTIVATION_TOKEN_HOURS", "24"))
+    LOGIN_RATE_LIMIT = os.getenv("LOGIN_RATE_LIMIT", "5 per minute")
+    RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
+    RATELIMIT_HEADERS_ENABLED = True

@@ -13,6 +13,9 @@ import os
 
 import click
 from flask import Flask, Response, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask_limiter import Limiter
+from flask_limiter.errors import RateLimitExceeded
+from flask_limiter.util import get_remote_address
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import CSRFProtect
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
@@ -373,6 +376,26 @@ def atualizar_senha_usuario(usuario, senha_atual, nova_senha, confirmar_senha):
     return True
 
 
+def senha_temporaria_parece_hash(valor):
+    return bool(valor) and valor.startswith(("scrypt:", "pbkdf2:", "argon2:"))
+
+
+def gerar_hash_senha_temporaria():
+    senha_temporaria = secrets.token_urlsafe(32)
+    return generate_password_hash(senha_temporaria)
+
+
+def proteger_senhas_temporarias_existentes():
+    alterou = False
+    usuarios = Usuario.query.filter(Usuario.senha_temporaria.isnot(None)).all()
+    for usuario in usuarios:
+        if not senha_temporaria_parece_hash(usuario.senha_temporaria):
+            usuario.senha_temporaria = generate_password_hash(usuario.senha_temporaria)
+            alterou = True
+    if alterou:
+        db.session.commit()
+
+
 def atualizar_email_unico(usuario, novo_email):
     email = validar_email(novo_email)
     if not email:
@@ -437,6 +460,7 @@ login_manager.login_view = "login"
 login_manager.login_message = "Faça login para acessar esta página."
 login_manager.login_message_category = "erro"
 csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @login_manager.user_loader
@@ -541,7 +565,8 @@ def atualizar_schema_simples():
     if "usuarios" not in inspector.get_table_names():
         return
 
-    colunas_usuario = {coluna["name"] for coluna in inspector.get_columns("usuarios")}
+    colunas_usuario_info = inspector.get_columns("usuarios")
+    colunas_usuario = {coluna["name"] for coluna in colunas_usuario_info}
     colunas_cliente = {coluna["name"] for coluna in inspector.get_columns("clientes")} if "clientes" in inspector.get_table_names() else set()
     colunas_mensagem = {coluna["name"] for coluna in inspector.get_columns("mensagens")} if "mensagens" in inspector.get_table_names() else set()
     comandos = []
@@ -557,7 +582,15 @@ def atualizar_schema_simples():
     if "precisa_definir_senha" not in colunas_usuario:
         comandos.append("ALTER TABLE usuarios ADD COLUMN precisa_definir_senha BOOLEAN NOT NULL DEFAULT 0")
     if "senha_temporaria" not in colunas_usuario:
-        comandos.append("ALTER TABLE usuarios ADD COLUMN senha_temporaria VARCHAR(80) NULL")
+        comandos.append("ALTER TABLE usuarios ADD COLUMN senha_temporaria VARCHAR(255) NULL")
+    elif db.engine.dialect.name == "mysql":
+        coluna_senha_temporaria = next(
+            (coluna for coluna in colunas_usuario_info if coluna["name"] == "senha_temporaria"),
+            None,
+        )
+        tamanho = getattr(coluna_senha_temporaria["type"], "length", None) if coluna_senha_temporaria else None
+        if tamanho and tamanho < 255:
+            comandos.append("ALTER TABLE usuarios MODIFY COLUMN senha_temporaria VARCHAR(255) NULL")
     for nome, definicao in {
         "whatsapp": "VARCHAR(30) NULL",
         "data_nascimento": "DATE NULL",
@@ -585,6 +618,7 @@ def atualizar_schema_simples():
         db.session.execute(text(comando))
     if comandos:
         db.session.commit()
+    proteger_senhas_temporarias_existentes()
 
 
 def inicializar_configuracoes_padrao():
@@ -765,6 +799,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     with app.app_context():
         # Nesta etapa inicial, o create_all facilita criar as novas tabelas.
@@ -791,6 +826,14 @@ def create_app():
             total = contar_mensagens_nao_lidas()
         dados["mensagens_nao_lidas"] = total
         return dados
+
+    @app.errorhandler(RateLimitExceeded)
+    def limite_login_excedido(erro):
+        flash(
+            "Muitas tentativas de login em pouco tempo. Aguarde um minuto antes de tentar novamente.",
+            "erro",
+        )
+        return redirect(url_for("login"))
 
     @app.get("/sitemap.xml")
     def sitemap_xml():
@@ -880,6 +923,7 @@ def create_app():
 
     # Rotas de autenticacao.
     @app.route("/login", methods=["GET", "POST"])
+    @limiter.limit(lambda: current_app.config["LOGIN_RATE_LIMIT"], methods=["POST"])
     def login():
         if current_user.is_authenticated:
             destino = "admin_dashboard" if current_user.tipo == "admin" else "cliente_dashboard"
@@ -1049,14 +1093,14 @@ def create_app():
             return redirect(url_for("admin_solicitacao_detalhe", id=solicitacao.id))
 
         # A senha aleatoria nunca e mostrada: o cliente criara a propria pelo link.
-        senha_inutilizavel = secrets.token_urlsafe(32)
+        senha_temporaria_hash = gerar_hash_senha_temporaria()
         usuario = Usuario(
             nome=solicitacao.nome,
             email=email_solicitacao,
-            senha_hash=generate_password_hash(senha_inutilizavel),
+            senha_hash=senha_temporaria_hash,
             tipo="cliente",
             precisa_definir_senha=True,
-            senha_temporaria=None,
+            senha_temporaria=senha_temporaria_hash,
         )
         cliente = Cliente(
             usuario=usuario,
@@ -1235,10 +1279,10 @@ def create_app():
             flash("Apenas senhas de clientes podem ser redefinidas por esta tela.", "erro")
             return redirect(url_for("admin_cliente_detalhe", id=cliente.id))
 
-        senha_inutilizavel = secrets.token_urlsafe(32)
-        usuario.senha_hash = generate_password_hash(senha_inutilizavel)
+        senha_temporaria_hash = gerar_hash_senha_temporaria()
+        usuario.senha_hash = senha_temporaria_hash
         usuario.precisa_definir_senha = True
-        usuario.senha_temporaria = None
+        usuario.senha_temporaria = senha_temporaria_hash
 
         try:
             db.session.flush()

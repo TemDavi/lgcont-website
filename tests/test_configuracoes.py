@@ -1,12 +1,13 @@
 import os
 import re
 import unittest
+from unittest.mock import patch
 
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 from werkzeug.security import generate_password_hash
 
-from app import create_app
+from app import create_app, senha_temporaria_parece_hash
 from models import (
     BackupRegistro,
     CategoriaAtendimento,
@@ -23,7 +24,7 @@ from models import (
 class ConfiguracoesTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app()
-        self.app.config.update(TESTING=True)
+        self.app.config.update(TESTING=True, LOGIN_RATE_LIMIT="100 per minute")
         self.ctx = self.app.app_context()
         self.ctx.push()
         db.drop_all()
@@ -70,10 +71,10 @@ class ConfiguracoesTestCase(unittest.TestCase):
         self.assertIsNotNone(match, f"csrf_token nao encontrado em {path}")
         return match.group(1)
 
-    def post_with_csrf(self, path, token_path, data=None):
+    def post_with_csrf(self, path, token_path, data=None, **kwargs):
         dados = dict(data or {})
         dados["csrf_token"] = self.csrf_token_from(token_path)
-        return self.client.post(path, data=dados)
+        return self.client.post(path, data=dados, **kwargs)
 
     def test_admin_acessa_configuracoes_e_cliente_nao(self):
         self.login("admin@example.com", "admin12345")
@@ -109,6 +110,20 @@ class ConfiguracoesTestCase(unittest.TestCase):
         )
         self.assertEqual(LogAuditoria.query.filter_by(acao="alterar_senha").count(), 0)
 
+    def test_login_bloqueia_muitas_tentativas(self):
+        self.app.config["LOGIN_RATE_LIMIT"] = "2 per minute"
+        self.post_with_csrf("/login", "/login", {"email": "admin@example.com", "senha": "errada"})
+        self.post_with_csrf("/login", "/login", {"email": "admin@example.com", "senha": "errada"})
+        resposta = self.post_with_csrf(
+            "/login",
+            "/login",
+            {"email": "admin@example.com", "senha": "errada"},
+            follow_redirects=True,
+        )
+        conteudo = resposta.get_data(as_text=True)
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn("Muitas tentativas de login em pouco tempo", conteudo)
+
     def test_categoria_duplicada_e_rejeitada(self):
         self.login("admin@example.com", "admin12345")
         self.post_with_csrf(
@@ -140,6 +155,21 @@ class ConfiguracoesTestCase(unittest.TestCase):
         backup = BackupRegistro.query.first()
         self.assertIsNotNone(backup)
         self.assertNotIn("/static/", backup.caminho.replace("\\", "/"))
+
+    def test_resetar_senha_salva_temporaria_com_hash(self):
+        self.login("admin@example.com", "admin12345")
+        with patch("app.enviar_email_reset_senha"):
+            resposta = self.post_with_csrf(
+                f"/admin/clientes/{self.cliente.id}/resetar-senha",
+                f"/admin/clientes/{self.cliente.id}",
+            )
+
+        usuario = db.session.get(Usuario, self.cliente_usuario.id)
+        self.assertEqual(resposta.status_code, 302)
+        self.assertTrue(usuario.precisa_definir_senha)
+        self.assertIsNotNone(usuario.senha_temporaria)
+        self.assertEqual(usuario.senha_temporaria, usuario.senha_hash)
+        self.assertTrue(senha_temporaria_parece_hash(usuario.senha_temporaria))
 
     def test_admin_remove_cliente_com_registros_de_configuracao(self):
         preferencia = PreferenciaNotificacao(cliente_id=self.cliente.id)
