@@ -11,6 +11,7 @@
   </div>
 
   <form class="panel-form" method="post" action="{{ url_for('cliente_definir_senha') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>
       Nova senha
       <input type="password" name="senha" minlength="8" required>

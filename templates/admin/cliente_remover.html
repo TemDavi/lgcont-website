@@ -17,6 +17,7 @@
   <div class="panel-actions">
     <a class="btn btn-secondary app-secondary" href="{{ url_for('admin_cliente_detalhe', id=cliente.id) }}">Cancelar</a>
     <form method="post" action="{{ url_for('admin_cliente_remover', id=cliente.id) }}" onsubmit="this.querySelector('button').disabled = true;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn btn-danger" type="submit">Sim, apagar permanentemente</button>
     </form>
   </div>

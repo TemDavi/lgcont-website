@@ -26,6 +26,7 @@
   <article class="info-card">
     <h2>Novo serviço</h2>
     <form class="compact-form" method="post" action="{{ url_for('admin_servico_novo', id=cliente.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="titulo" placeholder="Titulo do servico" required>
       <textarea name="descricao" rows="3" placeholder="Descricao"></textarea>
       <button class="btn btn-primary" type="submit">Adicionar</button>
@@ -35,6 +36,7 @@
   <article class="info-card">
     <h2>Nova pendência</h2>
     <form class="compact-form" method="post" action="{{ url_for('admin_pendencia_nova', id=cliente.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="titulo" placeholder="Titulo da pendencia" required>
       <textarea name="descricao" rows="3" placeholder="Descricao"></textarea>
       <button class="btn btn-primary" type="submit">Adicionar</button>
@@ -52,6 +54,7 @@
         <small>Atualizado em {{ servico.atualizado_em.strftime("%d/%m/%Y %H:%M") }}</small>
       </div>
       <form method="post" action="{{ url_for('admin_servico_status', id=servico.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <select name="status">
           {% for status in status_servico %}
             <option value="{{ status }}" {% if servico.status == status %}selected{% endif %}>{{ status }}</option>
@@ -75,6 +78,7 @@
         <small>Criada em {{ pendencia.criado_em.strftime("%d/%m/%Y %H:%M") }}</small>
       </div>
       <form method="post" action="{{ url_for('admin_pendencia_status', id=pendencia.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <select name="status">
           {% for status in status_pendencia %}
             <option value="{{ status }}" {% if pendencia.status == status %}selected{% endif %}>{{ status }}</option>
@@ -94,6 +98,7 @@
     <p>Envia um novo link para o cliente cadastrar uma nova senha.</p>
   </div>
   <form method="post" action="{{ url_for('admin_cliente_resetar_senha', id=cliente.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button class="btn btn-primary" type="submit">Resetar senha e enviar e-mail</button>
   </form>
 </section>

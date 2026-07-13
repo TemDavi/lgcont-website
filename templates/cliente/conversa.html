@@ -13,20 +13,21 @@
       <small class="message-meta">{{ mensagem.criado_em.strftime('%d/%m/%Y %H:%M') }}{% if mensagem.editada_em %} · editada{% endif %}</small>
       {% if mensagem.usuario_id == current_user.id and conversa.status == 'aberta' %}
         <form class="message-edit-form" id="edit-message-{{ mensagem.id }}" method="post" action="{{ url_for('cliente_mensagem_editar', conversa_id=conversa.id, mensagem_id=mensagem.id) }}" hidden>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <textarea name="texto" maxlength="2000" required>{{ mensagem.texto }}</textarea>
           <div class="message-edit-actions">
             <button class="btn btn-primary btn-small" type="submit">Salvar</button>
             <button class="btn btn-secondary app-secondary btn-small" type="button" data-cancel-edit>Cancelar</button>
           </div>
         </form>
-        <form id="delete-message-{{ mensagem.id }}" method="post" action="{{ url_for('cliente_mensagem_apagar', conversa_id=conversa.id, mensagem_id=mensagem.id) }}" hidden></form>
+        <form id="delete-message-{{ mensagem.id }}" method="post" action="{{ url_for('cliente_mensagem_apagar', conversa_id=conversa.id, mensagem_id=mensagem.id) }}" hidden><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
       {% endif %}
     </article>
   {% endif %}
 {% endfor %}
 {% if ns.visiveis == 0 %}<p class="chat-empty">Ainda não há mensagens nesta conversa.</p>{% endif %}
 </div>
-{% if conversa.status == 'aberta' %}<form class="chat-input" method="post" action="{{ url_for('cliente_conversa_enviar', conversa_id=conversa.id) }}"><textarea name="texto" maxlength="2000" required placeholder="Digite sua mensagem..."></textarea><button class="btn btn-primary" type="submit">Enviar</button></form>{% else %}<p class="chat-closed">Esta conversa foi fechada pelo administrador.</p>{% endif %}</section>
+{% if conversa.status == 'aberta' %}<form class="chat-input" method="post" action="{{ url_for('cliente_conversa_enviar', conversa_id=conversa.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><textarea name="texto" maxlength="2000" required placeholder="Digite sua mensagem..."></textarea><button class="btn btn-primary" type="submit">Enviar</button></form>{% else %}<p class="chat-closed">Esta conversa foi fechada pelo administrador.</p>{% endif %}</section>
 <div class="message-context-menu" id="message-context-menu" hidden>
   <button type="button" data-message-edit>Editar mensagem</button>
   <button type="button" data-message-delete>Apagar mensagem</button>
