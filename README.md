@@ -2,80 +2,117 @@
   <img src="static/assets/WebSite.png" alt="LG Contabilidade" width="100%">
 </p>
 
-# Luciano Garces Contabilidade e Pericias
+# Luciano Garcês Contabilidade e Perícias
 
-Website desenvolvido para o escritório de contabilidade "Luciano Garcês Contabilidade e Pericias"
+Sistema web em Flask para o escritório Luciano Garcês Contabilidade e Perícias, com site institucional, solicitação de atendimento, área do cliente e painel administrativo.
 
-![alt text](static/assets/home.png)
+![Página inicial](static/assets/home.png)
 
 ## 📖 Sobre
 
-Desenvolvido com **Python** utilizando o framework **Flask** no backend. O sistema foi projetado para oferecer uma experiência intuitiva, facilitando a comunicação entre clientes e a empresa. além de disponibilizar uma área administrativa para gerenciamento do conteúdo e dos atendimentos.
+O projeto centraliza o atendimento do escritório em uma aplicação Flask. A parte pública apresenta os serviços e permite solicitar atendimento. A área administrativa permite acompanhar solicitações, clientes, serviços, pendências, agenda, mensagens, configurações, relatórios e backups. A área do cliente permite acompanhar serviços, pendências, conversas e dados da própria conta.
 
-### ✨ Principais funcionalidades
+## ✨ Principais Funcionalidades
 
-* 🏠 Página inicial com apresentação da empresa e dos serviços oferecidos;
-* 👤 Área do cliente para acesso a funcionalidades exclusivas;
-* ⚙️ Painel administrativo para gerenciamento do site;
-* 📧 Integração com e-mail para envio e recebimento de solicitações;
-* 💬 Sistema de atendimento por mensagens diretamente no site;
-* 📱 Redirecionamento rápido para atendimento via WhatsApp;
-* 📲 Interface responsiva para computadores, tablets e dispositivos móveis.
-* 🌒 Modo escuro
+- 🏠 Página inicial institucional com serviços, sobre, diferenciais e FAQ.
+- 📝 Formulário público de solicitação de atendimento.
+- 👤 Login com separação entre administrador e cliente.
+- 💼 Área do cliente com painel, serviços, pendências, perfil, configurações e mensagens.
+- ⚙️ Painel administrativo com clientes, solicitações, serviços, pendências, agenda, mensagens, busca e relatórios.
+- 📧 Aprovação de solicitações com envio de link para definição de senha.
+- 🔐 Redefinição de senha de cliente por link enviado por e-mail.
+- 💬 Conversas internas entre cliente e administração, com edição e exclusão lógica de mensagens.
+- 🛠️ Configurações administrativas de conta, empresa, atendimento, personalização, segurança e backups.
+- 💾 Backups JSON gerados pelo painel administrativo.
+- 🗺️ Sitemap e robots.txt gerados para as páginas públicas.
+- 🛡️ Proteção CSRF em formulários.
+- 🚦 Limitação de tentativas de login com Flask-Limiter.
+- 🔑 Senhas e senhas temporárias armazenadas como hash.
+- 🌒 Tema claro/escuro e layout responsivo.
 
 ## 🛠 Tecnologias
 
 ### Backend
+
 - Python
 - Flask
+- Jinja2
 
-### Frontend
-- HTML5
-- CSS3
-- JavaScript
+### Banco de Dados
 
-### Banco de dados
 - MySQL
 - SQLAlchemy ORM
 - Flask-SQLAlchemy
 - PyMySQL
 
-### Autenticação, segurança e configuração
+### Autenticação e Segurança
+
 - Flask-Login
+- Flask-WTF / CSRFProtect
+- Flask-Limiter
 - Werkzeug Security para hash e validação de senhas
-- itsdangerous para geração e validação de tokens de ativação
+- itsdangerous para tokens de ativação e redefinição
 - python-dotenv para variáveis de ambiente
 - Conexão MySQL com suporte a SSL
 
+### Frontend
+
+- HTML5
+- CSS3
+- JavaScript
+
 ### E-mail
+
 - SMTP com `smtplib` e `email.message`
 - Templates HTML de e-mail com Jinja2
 
-### Ferramentas e ambiente
-- Git
-- GitHub
-- Visual Studio Code
-- Ambiente virtual Python (`venv`)
-- DBeaver para administração/teste do banco de dados
+## 📁 Estrutura do Projeto
 
-## Estrutura
+- `app.py`: cria a aplicação Flask e mantém o registro das rotas atuais.
+- `config.py`: carrega variáveis do `.env` e configura banco, e-mail, tokens, CSRF e rate limit.
+- `models.py`: define os modelos SQLAlchemy do sistema.
+- `extensions.py`: centraliza extensões Flask como `login_manager`, `csrf` e `limiter`.
+- `validators.py`: concentra validações de e-mail, documento, CEP e estado.
+- `seo.py`: concentra sitemap, robots e helpers de SEO.
+- `backups.py`: concentra geração e caminho dos backups JSON.
+- `email_service.py`: envia e-mails de ativação e redefinição de senha.
+- `templates/`: telas públicas, administrativas, área do cliente, e-mails e parciais.
+- `static/`: CSS, JavaScript e assets do site.
+- `tests/`: testes automatizados principais do fluxo de configurações, CSRF, login e segurança.
+- `.env.example`: exemplo de configuração local.
+- `requirements.txt`: dependências Python.
 
-- `app.py`: cria a aplicacao Flask, inicializa Flask-Login, registra rotas publicas, administrativas e de cliente.
-- `config.py`: le as variaveis do `.env` e monta a conexao MySQL para o SQLAlchemy.
-- `models.py`: define os dados de usuários, clientes, atendimentos e também `Conversa` e `Mensagem`.
-- `templates/index.html`: pagina institucional publica.
-- `templates/base.html`: layout base das telas de login, admin e cliente.
-- `templates/admin/`: telas do painel administrativo.
-- `templates/cliente/`: telas da area do cliente.
-- `static/style.css`: estilos do site e dos paineis.
-- `static/script.js`: menu mobile e atualizacao automatica do ano no rodape.
-- `static/assets/`: imagens e arquivos estaticos.
-- `.env.example`: exemplo de configuracao local.
-- `requirements.txt`: dependencias Python.
+## 🔧 Variáveis de Ambiente Principais
 
-## Rodar o projeto
+O projeto lê configurações a partir do `.env`.
+
+Exemplos importantes:
+
+```env
+FLASK_SECRET_KEY=sua-chave-secreta
+DATABASE_URL=
+MYSQL_USER=root
+MYSQL_PASSWORD=
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DATABASE=lgcont_db
+PUBLIC_BASE_URL=http://127.0.0.1:5000
+ACTIVATION_TOKEN_HOURS=24
+LOGIN_RATE_LIMIT=5 per minute
+RATELIMIT_STORAGE_URI=memory://
+```
+
+Para produção com múltiplos workers, prefira um storage compartilhado para o Flask-Limiter, como Redis, em vez de `memory://`.
+
+## 📦 Instalar Dependências
 
 Com o ambiente virtual ativado:
+
+```powershell
+pip install -r requirements.txt
+```
+
+## ▶️ Rodar o Projeto
 
 ```powershell
 py app.py
@@ -86,3 +123,4 @@ Acesse:
 ```text
 http://127.0.0.1:5000
 ```
+
