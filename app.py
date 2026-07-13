@@ -2,30 +2,26 @@ from functools import wraps
 from getpass import getpass
 import json
 import secrets
-import re
 import shutil
 from datetime import date, datetime
 from pathlib import Path
-from xml.dom import minidom
-from xml.etree import ElementTree as ET
 
 import os
 
 import click
 from flask import Flask, Response, current_app, flash, redirect, render_template, request, send_file, url_for
-from flask_limiter import Limiter
 from flask_limiter.errors import RateLimitExceeded
-from flask_limiter.util import get_remote_address
-from flask_login import LoginManager, current_user, login_required, login_user, logout_user
-from flask_wtf.csrf import CSRFProtect
+from flask_login import current_user, login_required, login_user, logout_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import func, inspect, or_, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
+from backups import caminho_backups, gerar_backup_json
 from config import Config
 from email_service import EmailDeliveryError, enviar_email_ativacao, enviar_email_reset_senha
+from extensions import csrf, limiter, login_manager
 from models import (
     STATUS_PENDENCIA,
     STATUS_SERVICO,
@@ -56,13 +52,12 @@ from models import (
     Usuario,
     db,
 )
+from seo import ROBOTS_TXT, gerar_sitemap_xml, registrar_paginas_publicas_sitemap
+from validators import validar_cep, validar_documento, validar_email, validar_estado
 
 STATUS_SERVICO_ATIVO = ("solicitado", "em análise", "aguardando documentos")
 ADMIN_CONFIG_SECOES = ("conta", "empresa", "atendimento", "personalizacao", "seguranca", "backup")
 CLIENTE_CONFIG_SECOES = ("conta", "dados", "notificacoes", "seguranca", "privacidade")
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-CEP_RE = re.compile(r"^\d{5}-?\d{3}$")
-DOCUMENTO_RE = re.compile(r"^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$|^\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}$")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif", "ico", "svg"}
 DEFAULT_CATEGORIAS_ATENDIMENTO = (
     "Impostos",
@@ -135,14 +130,6 @@ HOME_DEFAULT_ITEMS = {
         ("Quais documentos preciso?", "Os documentos variam de acordo com o serviço solicitado. Durante o primeiro atendimento, enviamos uma lista personalizada para evitar documentos desnecessários."),
     ],
 }
-SITEMAP_BASE_URL = "https://lucianogarcescontabilidade.com.br"
-ROBOTS_TXT = """User-agent: *
-Allow: /
-
-Sitemap: https://lucianogarcescontabilidade.com.br/sitemap.xml
-"""
-
-
 def registrar_atividade(tipo, descricao, usuario_id=None, cliente_id=None):
     db.session.add(Atividade(tipo=tipo, descricao=descricao, usuario_id=usuario_id, cliente_id=cliente_id))
 
@@ -173,32 +160,6 @@ def registrar_historico_acesso(usuario, email_informado, sucesso):
             sucesso=sucesso,
         )
     )
-
-
-def validar_email(valor):
-    email = (valor or "").strip().lower()
-    return email if EMAIL_RE.match(email) else None
-
-
-def validar_documento(valor, obrigatorio=False):
-    documento = (valor or "").strip()
-    if not documento:
-        return None if not obrigatorio else False
-    return documento if DOCUMENTO_RE.match(documento) else False
-
-
-def validar_cep(valor):
-    cep = (valor or "").strip()
-    if not cep:
-        return None
-    return cep if CEP_RE.match(cep) else False
-
-
-def validar_estado(valor):
-    estado = (valor or "").strip().upper()
-    if not estado:
-        return None
-    return estado if len(estado) == 2 and estado.isalpha() else False
 
 
 def obter_registro_unico(modelo):
@@ -349,12 +310,6 @@ def salvar_imagem_config(campo, prefixo):
     return f"uploads/configuracoes/{nome_final}"
 
 
-def caminho_backups():
-    caminho = Path(current_app.instance_path) / "backups"
-    caminho.mkdir(parents=True, exist_ok=True)
-    return caminho
-
-
 def validar_senha_atual(usuario, senha_atual):
     if not check_password_hash(usuario.senha_hash, senha_atual or ""):
         flash("Senha atual incorreta.", "erro")
@@ -407,60 +362,6 @@ def atualizar_email_unico(usuario, novo_email):
         return False
     usuario.email = email
     return True
-
-
-SITEMAP_PUBLIC_PAGES = (
-    {
-        "endpoint": "index",
-        "path": "/",
-        "template": "templates/index.html",
-        "changefreq": "weekly",
-        "priority": "1.0",
-    },
-    {
-        "endpoint": "index",
-        "path": "/#servicos",
-        "template": "templates/index.html",
-        "changefreq": "monthly",
-        "priority": "0.9",
-    },
-    {
-        "endpoint": "index",
-        "path": "/#sobre",
-        "template": "templates/index.html",
-        "changefreq": "yearly",
-        "priority": "0.8",
-    },
-    {
-        "endpoint": "solicitar_atendimento",
-        "path": "/solicitar-atendimento",
-        "template": "templates/solicitar_atendimento.html",
-        "changefreq": "monthly",
-        "priority": "0.8",
-    },
-    {
-        "endpoint": "index",
-        "path": "/#diferenciais",
-        "template": "templates/index.html",
-        "changefreq": "yearly",
-        "priority": "0.7",
-    },
-    {
-        "endpoint": "index",
-        "path": "/#faq",
-        "template": "templates/index.html",
-        "changefreq": "yearly",
-        "priority": "0.7",
-    },
-)
-
-
-login_manager = LoginManager()
-login_manager.login_view = "login"
-login_manager.login_message = "Faça login para acessar esta página."
-login_manager.login_message_category = "erro"
-csrf = CSRFProtect()
-limiter = Limiter(key_func=get_remote_address)
 
 
 @login_manager.user_loader
@@ -684,113 +585,6 @@ def apagar_mensagem(conversa, mensagem_id):
     )
     db.session.commit()
     flash("Mensagem apagada.", "sucesso")
-
-
-def obter_lastmod(*caminhos_relativos):
-    # Usa a data do arquivo mais recente como lastmod quando ha template/local conhecido.
-    datas = []
-    raiz = Path(current_app.root_path)
-    for caminho_relativo in caminhos_relativos:
-        if not caminho_relativo:
-            continue
-        caminho = raiz / caminho_relativo
-        if caminho.exists():
-            datas.append(datetime.fromtimestamp(caminho.stat().st_mtime).date())
-    return max(datas).isoformat() if datas else None
-
-
-def montar_url_absoluta(caminho):
-    caminho_normalizado = caminho if caminho.startswith("/") else f"/{caminho}"
-    return f"{SITEMAP_BASE_URL}{caminho_normalizado}"
-
-
-def rota_publica_para_sitemap(regra):
-    # Mantem fora do sitemap areas privadas, auth, rotas tecnicas e URLs com parametros.
-    if "GET" not in regra.methods or regra.arguments:
-        return False
-    if regra.endpoint in {"static", "login", "logout", "ativar_conta", "sitemap_xml", "robots_txt"}:
-        return False
-    if regra.endpoint.startswith(("admin_", "cliente_")):
-        return False
-    if regra.rule.startswith(("/admin", "/cliente", "/api")):
-        return False
-    if regra.rule in {"/sitemap.xml", "/robots.txt"}:
-        return False
-    return True
-
-
-def registrar_paginas_publicas_sitemap(app):
-    # As paginas conhecidas carregam metadados SEO especificos; novas rotas
-    # publicas simples entram automaticamente com valores institucionais padrao.
-    paginas = [dict(pagina) for pagina in SITEMAP_PUBLIC_PAGES]
-    caminhos_registrados = {pagina["path"] for pagina in paginas}
-
-    for regra in app.url_map.iter_rules():
-        if not rota_publica_para_sitemap(regra) or regra.rule in caminhos_registrados:
-            continue
-        paginas.append(
-            {
-                "endpoint": regra.endpoint,
-                "path": regra.rule,
-                "template": "app.py",
-                "changefreq": "yearly",
-                "priority": "0.7",
-            }
-        )
-        caminhos_registrados.add(regra.rule)
-    return paginas
-
-
-def gerar_sitemap_xml(paginas):
-    urlset = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
-    for pagina in paginas:
-        url = ET.SubElement(urlset, "url")
-        ET.SubElement(url, "loc").text = montar_url_absoluta(pagina["path"])
-
-        lastmod = obter_lastmod(pagina.get("template"))
-        if lastmod:
-            ET.SubElement(url, "lastmod").text = lastmod
-
-        ET.SubElement(url, "changefreq").text = pagina["changefreq"]
-        ET.SubElement(url, "priority").text = pagina["priority"]
-
-    xml_bruto = ET.tostring(urlset, encoding="utf-8")
-    return minidom.parseString(xml_bruto).toprettyxml(indent="  ", encoding="utf-8").decode("utf-8")
-
-
-def serializar_tabela(modelo, campos):
-    itens = []
-    for registro in modelo.query.all():
-        item = {}
-        for campo in campos:
-            valor = getattr(registro, campo)
-            if isinstance(valor, (datetime, date)):
-                valor = valor.isoformat()
-            item[campo] = valor
-        itens.append(item)
-    return itens
-
-
-def gerar_backup_json():
-    dados = {
-        "gerado_em": datetime.utcnow().isoformat(),
-        "versao": "lg-crm-1",
-        "usuarios": serializar_tabela(Usuario, ["id", "nome", "email", "tipo", "telefone", "cargo", "tema_preferido", "criado_em", "ultimo_acesso"]),
-        "clientes": serializar_tabela(Cliente, ["id", "usuario_id", "telefone", "whatsapp", "cpf_cnpj", "endereco", "tipo_cliente", "cep", "cidade", "estado", "criado_em"]),
-        "solicitacoes": serializar_tabela(SolicitacaoAtendimento, ["id", "nome", "email", "telefone", "cpf_cnpj", "tipo_cliente", "servico_desejado", "status", "criado_em"]),
-        "servicos": serializar_tabela(ServicoCliente, ["id", "cliente_id", "titulo", "status", "criado_em", "atualizado_em"]),
-        "pendencias": serializar_tabela(Pendencia, ["id", "cliente_id", "titulo", "status", "criado_em"]),
-        "configuracao_empresa": serializar_tabela(ConfiguracaoEmpresa, ["id", "nome_empresa", "razao_social", "nome_fantasia", "cnpj", "telefone", "whatsapp", "email_comercial", "cidade", "estado", "cep", "logo_path"]),
-        "configuracao_sistema": serializar_tabela(ConfiguracaoSistema, ["id", "nome_sistema"]),
-        "configuracao_pagina_inicial": serializar_tabela(ConfiguracaoPaginaInicial, ["id", "hero_eyebrow", "hero_titulo", "hero_texto", "servicos_titulo", "sobre_titulo", "diferenciais_titulo", "faq_titulo"]),
-        "itens_pagina_inicial": serializar_tabela(ItemPaginaInicial, ["id", "tipo", "titulo", "descricao", "marcador", "ordem", "ativo"]),
-        "configuracao_atendimento": serializar_tabela(ConfiguracaoAtendimento, ["id", "prioridade_padrao", "prazo_resposta_horas", "permitir_anexos", "tamanho_maximo_anexo_mb", "formatos_permitidos"]),
-        "categorias_atendimento": serializar_tabela(CategoriaAtendimento, ["id", "nome", "ativa", "criado_em"]),
-    }
-    nome = f"backup-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}.json"
-    destino = caminho_backups() / nome
-    destino.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8")
-    return nome, destino
 
 
 def create_app():
